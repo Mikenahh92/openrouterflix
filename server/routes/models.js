@@ -103,9 +103,10 @@ function applySort(models, sort) {
 
 /**
  * Fetch normalized models with cache + stale fallback.
+ * Shared with categories route — exported for reuse.
  * @returns {Promise<object[]>} Array of normalized models
  */
-async function getNormalizedModels() {
+export async function getNormalizedModels() {
   // Check cache
   let models = cache.get(CACHE_KEY_LIST);
   if (models) return models;

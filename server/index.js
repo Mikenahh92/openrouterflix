@@ -6,6 +6,7 @@ import express from 'express';
 import cors from 'cors';
 import { errorHandler } from './middleware/errorHandler.js';
 import modelsRouter from './routes/models.js';
+import categoriesRouter from './routes/categories.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -26,6 +27,9 @@ app.get('/api/health', (_req, res) => {
 
 // Models API
 app.use('/api/models', modelsRouter);
+
+// Categories API
+app.use('/api/categories', categoriesRouter);
 
 // Centralized error middleware (must be last)
 app.use(errorHandler);
