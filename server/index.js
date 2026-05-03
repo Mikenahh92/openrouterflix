@@ -7,6 +7,7 @@ import cors from 'cors';
 import { errorHandler } from './middleware/errorHandler.js';
 import modelsRouter from './routes/models.js';
 import categoriesRouter from './routes/categories.js';
+import playgroundRouter from './routes/playground.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -30,6 +31,9 @@ app.use('/api/models', modelsRouter);
 
 // Categories API
 app.use('/api/categories', categoriesRouter);
+
+// Playground API
+app.use('/api/playground', playgroundRouter);
 
 // Centralized error middleware (must be last)
 app.use(errorHandler);
