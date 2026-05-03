@@ -1,0 +1,8 @@
+node_modules
+dist
+dist-ssr
+server
+.git
+.synod-worktrees
+.env
+*.md
