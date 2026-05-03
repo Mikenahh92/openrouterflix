@@ -5,6 +5,7 @@
 import express from 'express';
 import cors from 'cors';
 import { errorHandler } from './middleware/errorHandler.js';
+import modelsRouter from './routes/models.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -22,6 +23,9 @@ app.use(express.json());
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
+
+// Models API
+app.use('/api/models', modelsRouter);
 
 // Centralized error middleware (must be last)
 app.use(errorHandler);

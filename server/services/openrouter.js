@@ -22,29 +22,65 @@ export async function fetchFromOpenRouter(endpoint, options = {}) {
 
   const url = `${BASE_URL}${endpoint}`;
 
-  const response = await fetch(url, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey}`,
-      'HTTP-Referer': 'https://openrouterflix.app',
-      ...options.headers,
-    },
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 10000);
 
-  if (!response.ok) {
-    const error = new Error(
-      `OpenRouter API error: ${response.status} ${response.statusText}`
-    );
-    error.status = response.status;
-    try {
-      const body = await response.json();
-      error.details = body.error?.message || JSON.stringify(body);
-    } catch {
-      // Response body not JSON — skip details
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${apiKey}`,
+        'HTTP-Referer': 'https://openrouterflix.app',
+        ...options.headers,
+      },
+    });
+
+    if (!response.ok) {
+      const error = new Error(
+        `OpenRouter API error: ${response.status} ${response.statusText}`
+      );
+      error.status = response.status;
+      try {
+        const body = await response.json();
+        error.details = body.error?.message || JSON.stringify(body);
+      } catch {
+        // Response body not JSON — skip details
+      }
+      throw error;
     }
-    throw error;
-  }
 
-  return response.json();
+    return response.json();
+  } catch (err) {
+    if (err.name === 'AbortError') {
+      const timeoutError = new Error('OpenRouter API request timed out.');
+      timeoutError.status = 504;
+      throw timeoutError;
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+/**
+ * Fetch the full list of models from OpenRouter.
+ * Uses GET /api/v1/models — the primary data source.
+ * @returns {Promise<object[]>} Array of raw model objects
+ */
+export async function fetchModels() {
+  const response = await fetchFromOpenRouter('/models');
+  return response.data || [];
+}
+
+/**
+ * Fetch a single model by ID.
+ * Reuses fetchModels() internally since OpenRouter may not expose a reliable single-model endpoint.
+ * @param {string} id - Model ID (e.g., "openai/gpt-4o")
+ * @returns {Promise<object|null>} Raw model object or null if not found
+ */
+export async function fetchModelById(id) {
+  const models = await fetchModels();
+  return models.find((m) => m.id === id) || null;
 }
