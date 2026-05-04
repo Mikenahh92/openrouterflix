@@ -15,6 +15,7 @@
  */
 
 import { create } from 'zustand';
+import { catalogSlice } from '../../features/catalog/catalogSlice.js';
 
 /**
  * Create a combined Zustand store from named slice functions.
@@ -46,6 +47,11 @@ export function createStore(sliceMap) {
 }
 
 /**
- * Re-export Zustand's `create` for direct use if needed.
+ * Application-wide Zustand store with all feature slices.
+ * Slices are added here as features are implemented.
  */
-export { create as useStore };
+const useStore = create((set, get) => ({
+  catalog: catalogSlice(set, get),
+}));
+
+export { useStore };
