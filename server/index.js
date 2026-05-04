@@ -8,6 +8,7 @@ import { errorHandler } from './middleware/errorHandler.js';
 import modelsRouter from './routes/models.js';
 import categoriesRouter from './routes/categories.js';
 import playgroundRouter from './routes/playground.js';
+import compareRouter from './routes/compare.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -34,6 +35,9 @@ app.use('/api/categories', categoriesRouter);
 
 // Playground API
 app.use('/api/playground', playgroundRouter);
+
+// Compare API
+app.use('/api/compare', compareRouter);
 
 // Centralized error middleware (must be last)
 app.use(errorHandler);
