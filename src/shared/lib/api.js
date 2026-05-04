@@ -139,4 +139,31 @@ export const api = {
   del(path, opts = {}) {
     return request(path, { ...opts, method: 'DELETE' });
   },
+
+  /**
+   * Send a playground prompt to the selected model.
+   * Adapts the simple UI model (model + prompt) to the backend contract
+   * (model + messages array), and maps the response back to the frontend shape.
+   *
+   * @param {string} modelId — the model ID
+   * @param {string} prompt  — user prompt text
+   * @returns {Promise<{ text: string, tokens: number, latency: number, cost: number|null }>}
+   */
+  async sendPlaygroundPrompt(modelId, prompt) {
+    const result = await request('/playground', {
+      method: 'POST',
+      body: JSON.stringify({
+        model: modelId,
+        messages: [{ role: 'user', content: prompt }],
+      }),
+    });
+
+    const d = result.data?.data ?? result.data;
+    return {
+      text: d.text ?? '',
+      tokens: d.usage?.total_tokens ?? 0,
+      latency: d.latency_ms ?? 0,
+      cost: d.cost?.totalCost ?? null,
+    };
+  },
 };

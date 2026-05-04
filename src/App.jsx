@@ -4,6 +4,7 @@ import AppLayout from './shared/layouts/AppLayout'
 import CatalogPage from './features/catalog/CatalogPage'
 
 const DetailPage = lazy(() => import('./detail/components/DetailPage'))
+const PlaygroundPage = lazy(() => import('./playground/components/PlaygroundPage'))
 
 function ComparePlaceholder() {
   return (
@@ -11,17 +12,6 @@ function ComparePlaceholder() {
       <h1 className="text-3xl font-bold mb-4">Compare Models</h1>
       <p className="text-sm text-slate-400">
         Compare models side by side. Coming soon.
-      </p>
-    </div>
-  )
-}
-
-function PlaygroundPlaceholder() {
-  return (
-    <div className="max-w-[1440px] mx-auto px-12 py-12">
-      <h1 className="text-3xl font-bold mb-4">Playground</h1>
-      <p className="text-sm text-slate-400">
-        Test models live with your own prompts. Coming soon.
       </p>
     </div>
   )
@@ -41,7 +31,14 @@ export default function App() {
           }
         />
         <Route path="/compare" element={<ComparePlaceholder />} />
-        <Route path="/playground" element={<PlaygroundPlaceholder />} />
+        <Route
+          path="/playground"
+          element={
+            <Suspense fallback={<div className="max-w-[1440px] mx-auto px-12 py-12 text-slate-400">Loading…</div>}>
+              <PlaygroundPage />
+            </Suspense>
+          }
+        />
       </Route>
     </Routes>
   )
