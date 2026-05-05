@@ -1,5 +1,5 @@
 /**
- * Zustand catalog slice — manages categories and models state.
+ * Zustand catalog slice — manages categories, models, and filter/sort/search state.
  */
 import { api } from '../../shared/lib/api.js';
 import { API_ROUTES } from '../../shared/lib/constants.js';
@@ -12,13 +12,26 @@ import { API_ROUTES } from '../../shared/lib/constants.js';
  */
 export function catalogSlice(set, get) {
   return {
-    // State
+    // Data state
     categories: [],
     models: [],
     loading: false,
     error: null,
 
+    // Filter/sort/search state
+    filters: {
+      category: null,
+      provider: null,
+      priceMin: null,
+      priceMax: null,
+      modality: null,
+      ctxWindow: null,
+    },
+    sortBy: 'popularity',
+    searchQuery: '',
+
     // Actions
+
     async fetchCatalog() {
       const state = get().catalog;
       if (state.loading) return;
@@ -51,6 +64,45 @@ export function catalogSlice(set, get) {
           },
         }));
       }
+    },
+
+    setFilter(key, value) {
+      set((s) => ({
+        catalog: {
+          ...s.catalog,
+          filters: { ...s.catalog.filters, [key]: value },
+        },
+      }));
+    },
+
+    setSortBy(sort) {
+      set((s) => ({
+        catalog: { ...s.catalog, sortBy: sort },
+      }));
+    },
+
+    setSearchQuery(query) {
+      set((s) => ({
+        catalog: { ...s.catalog, searchQuery: query },
+      }));
+    },
+
+    clearFilters() {
+      set((s) => ({
+        catalog: {
+          ...s.catalog,
+          filters: {
+            category: null,
+            provider: null,
+            priceMin: null,
+            priceMax: null,
+            modality: null,
+            ctxWindow: null,
+          },
+          sortBy: 'popularity',
+          searchQuery: '',
+        },
+      }));
     },
   };
 }

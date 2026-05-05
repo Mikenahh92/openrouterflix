@@ -1,4 +1,5 @@
 import { Link } from 'react-router';
+import { useStore } from '../../shared/lib/store.js';
 
 /**
  * Format a pricing value (per-1M tokens) to a human-readable string.
@@ -26,8 +27,54 @@ function formatContext(tokens) {
 }
 
 /**
+ * Highlight matching text with a colored span.
+ * Case-insensitive matching; wraps all occurrences of the query.
+ *
+ * @param {string} text - Original text
+ * @param {string} query - Search query to highlight
+ * @returns {Array|string} React-compatible array of strings/elements, or original string
+ */
+function highlightText(text, query) {
+  if (!text || !query) return text;
+  const lowerText = text.toLowerCase();
+  const lowerQuery = query.toLowerCase();
+
+  const idx = lowerText.indexOf(lowerQuery);
+  if (idx === -1) return text;
+
+  const parts = [];
+  let lastIndex = 0;
+
+  let searchFrom = 0;
+  while (searchFrom < lowerText.length) {
+    const foundAt = lowerText.indexOf(lowerQuery, searchFrom);
+    if (foundAt === -1) break;
+
+    if (foundAt > lastIndex) {
+      parts.push(text.slice(lastIndex, foundAt));
+    }
+    parts.push(
+      <mark
+        key={foundAt}
+        className="bg-violet-500/30 text-violet-200 rounded-sm px-0.5"
+      >
+        {text.slice(foundAt, foundAt + query.length)}
+      </mark>
+    );
+    lastIndex = foundAt + query.length;
+    searchFrom = lastIndex;
+  }
+
+  if (lastIndex < text.length) {
+    parts.push(text.slice(lastIndex));
+  }
+
+  return parts.length > 0 ? parts : text;
+}
+
+/**
  * Netflix-style model card with hero gradient, provider badge, spec rows,
- * category pills, and hover effects.
+ * category pills, hover effects, and search highlighting.
  *
  * @param {object} props
  * @param {object} props.model - Normalized model object
@@ -43,6 +90,9 @@ export default function ModelCard({ model }) {
     qualityScore,
   } = model;
 
+  // Get active search query for highlighting
+  const searchQuery = useStore((s) => s.catalog?.searchQuery ?? '');
+
   return (
     <Link
       to={`/models/${encodeURIComponent(id)}`}
@@ -56,7 +106,7 @@ export default function ModelCard({ model }) {
         {provider && (
           <span className="absolute top-2 left-2 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider
             bg-surface-base/70 backdrop-blur-sm rounded-md text-slate-300 border border-slate-700/50">
-            {provider}
+            {highlightText(provider, searchQuery)}
           </span>
         )}
         {/* Quality score badge */}
@@ -72,7 +122,7 @@ export default function ModelCard({ model }) {
       <div className="flex flex-col flex-1 p-3 pt-2">
         {/* Model name */}
         <h3 className="text-sm font-semibold text-slate-100 leading-snug truncate mb-2 group-hover:text-violet-300 transition-colors">
-          {name || id}
+          {highlightText(name || id, searchQuery)}
         </h3>
 
         {/* Spec rows */}
@@ -106,7 +156,7 @@ export default function ModelCard({ model }) {
                 className="px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wide
                   bg-surface-overlay text-slate-400 rounded-md border border-slate-700/40"
               >
-                {cat}
+                {highlightText(cat, searchQuery)}
               </span>
             ))}
             {categories.length > 4 && (

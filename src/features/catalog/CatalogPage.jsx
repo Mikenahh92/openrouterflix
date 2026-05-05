@@ -1,31 +1,25 @@
 import { useEffect, useMemo } from 'react';
+import { Search } from 'lucide-react';
 import { useStore } from '../../shared/lib/store.js';
 import { catalogSlice } from './catalogSlice.js';
 import CategoryRow from './CategoryRow.jsx';
-
-// Initialize store with catalog slice (singleton pattern)
-let storeInstance = null;
-
-function getCatalogStore() {
-  if (!storeInstance) {
-    // Dynamic import would be cleaner but inline creation works for now
-    // The store is created in store.js via createStore
-    return null;
-  }
-  return storeInstance;
-}
+import ModelCard from './ModelCard.jsx';
+import SearchBar from './SearchBar.jsx';
+import FilterBar from './FilterBar.jsx';
+import { useFilters } from './useFilters.js';
 
 /**
- * Catalog home page — Netflix-style category rows with model cards.
- * Fetches categories and models from the backend API on mount.
+ * Catalog home page — Netflix-style category rows with model cards,
+ * plus filtering, sorting, and search capabilities.
  */
 export default function CatalogPage() {
   // Access Zustand store directly — catalog slice is registered at app level
   const categories = useStore((s) => s.catalog?.categories ?? []);
-  const models = useStore((s) => s.catalog?.models ?? []);
   const loading = useStore((s) => s.catalog?.loading ?? false);
   const error = useStore((s) => s.catalog?.error);
   const fetchCatalog = useStore((s) => s.catalog?.fetchCatalog);
+
+  const { isFiltered, filteredModels, clearFilters } = useFilters();
 
   useEffect(() => {
     if (fetchCatalog) {
@@ -33,17 +27,15 @@ export default function CatalogPage() {
     }
   }, [fetchCatalog]);
 
-  // Group models by category using the slug-based matching
+  // Group models by category using the slug-based matching (for unfiltered view)
+  const models = useStore((s) => s.catalog?.models ?? []);
   const categoryModelsMap = useMemo(() => {
     const map = new Map();
 
-    // Build a map from raw category → display slug using the categories endpoint data
-    // We match by checking if model.categories includes the category id (which is the slug)
     for (const category of categories) {
       const matchingModels = models.filter((model) => {
         if (!Array.isArray(model.categories)) return false;
         return model.categories.some((cat) => {
-          // Match by slug: compare lowercase version
           const normalized = cat.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
           return normalized === category.id || cat.toLowerCase() === category.id;
         });
@@ -98,7 +90,7 @@ export default function CatalogPage() {
     );
   }
 
-  // Empty state
+  // Empty state (no categories loaded)
   if (categories.length === 0 && !loading) {
     return (
       <div className="max-w-[1440px] mx-auto px-12 py-16">
@@ -113,27 +105,69 @@ export default function CatalogPage() {
   return (
     <div className="max-w-[1440px] mx-auto py-8">
       {/* Page header */}
-      <div className="px-12 mb-6">
+      <div className="px-12 mb-4">
         <h1 className="text-3xl font-bold text-slate-100">Model Catalog</h1>
         <p className="text-sm text-slate-400 mt-1">
-          Browse and discover AI models across {categories.length} categories
+          {isFiltered
+            ? `${filteredModels.length} model${filteredModels.length !== 1 ? 's' : ''} found`
+            : `Browse and discover AI models across ${categories.length} categories`}
         </p>
       </div>
 
-      {/* Category rows */}
-      <div className="flex flex-col gap-2">
-        {categories.map((category) => {
-          const rowModels = categoryModelsMap.get(category.id) ?? [];
-          if (rowModels.length === 0) return null;
-          return (
-            <CategoryRow
-              key={category.id}
-              category={category}
-              models={rowModels}
-            />
-          );
-        })}
+      {/* Search + Filter bar */}
+      <div className="px-12 mb-6 flex flex-col gap-3">
+        <SearchBar />
+        <FilterBar />
       </div>
+
+      {/* Content area */}
+      {isFiltered ? (
+        // Filtered view: flat responsive grid
+        filteredModels.length === 0 ? (
+          <div className="px-12 py-16 flex flex-col items-center text-center">
+            <Search size={48} className="text-slate-600 mb-4" />
+            <p className="text-lg text-slate-400 mb-2">No models match your filters</p>
+            <p className="text-sm text-slate-500 mb-4">
+              Try adjusting your search or filter criteria
+            </p>
+            <button
+              onClick={clearFilters}
+              className="px-4 py-2 text-sm bg-violet-500 hover:bg-violet-600 text-white rounded-lg
+                transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-violet-400"
+            >
+              Clear all filters
+            </button>
+          </div>
+        ) : (
+          <div className="px-12">
+            <div
+              className="grid gap-4"
+              style={{
+                gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
+              }}
+            >
+              {filteredModels.map((model) => (
+                <ModelCard key={model.id} model={model} />
+              ))}
+            </div>
+          </div>
+        )
+      ) : (
+        // Default view: category rows
+        <div className="flex flex-col gap-2">
+          {categories.map((category) => {
+            const rowModels = categoryModelsMap.get(category.id) ?? [];
+            if (rowModels.length === 0) return null;
+            return (
+              <CategoryRow
+                key={category.id}
+                category={category}
+                models={rowModels}
+              />
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
