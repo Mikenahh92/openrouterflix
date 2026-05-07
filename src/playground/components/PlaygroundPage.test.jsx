@@ -2,6 +2,7 @@
  * Integration tests for PlaygroundPage.
  *
  * Tests the full flow: select model → type prompt → submit → response display.
+ * Also tests multi-model comparison mode.
  * Uses mocked API to avoid backend dependency.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -39,7 +40,7 @@ function renderPlaygroundPage() {
   );
 }
 
-describe('PlaygroundPage integration', () => {
+describe('PlaygroundPage integration — single model', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     usePlaygroundStore.getState().clearAll();
@@ -196,5 +197,178 @@ describe('PlaygroundPage integration', () => {
 
     const sendBtn = screen.getByLabelText('Send prompt');
     expect(sendBtn).toBeDisabled();
+  });
+});
+
+describe('PlaygroundPage integration — compare mode', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    usePlaygroundStore.getState().clearAll();
+    usePlaygroundStore.setState({ modelsLoaded: false, models: [] });
+    api.get.mockResolvedValue({ data: { data: mockModels } });
+  });
+
+  it('switches to compare mode when Compare tab is clicked', async () => {
+    const user = userEvent.setup();
+    renderPlaygroundPage();
+
+    await waitFor(() => expect(api.get).toHaveBeenCalled());
+
+    // Click the Compare tab
+    await user.click(screen.getByText('Compare'));
+
+    // Should show multi-model selector
+    expect(
+      screen.getByPlaceholderText('Search models to add...')
+    ).toBeInTheDocument();
+    // Should show comparison grid empty state
+    expect(
+      screen.getByText('Select 2–4 models and send a prompt to compare responses.')
+    ).toBeInTheDocument();
+  });
+
+  it('adds models, types prompt, submits, and shows comparison results', async () => {
+    const user = userEvent.setup();
+
+    // Parallel frontend calls — each model gets its own sendPlaygroundPrompt call
+    api.sendPlaygroundPrompt
+      .mockResolvedValueOnce({
+        text: 'Response from GPT-4o',
+        tokens: 100,
+        latency: 1500,
+        cost: 0.0025,
+      })
+      .mockResolvedValueOnce({
+        text: 'Response from Claude 3',
+        tokens: 80,
+        latency: 1200,
+        cost: 0.0018,
+      });
+
+    renderPlaygroundPage();
+
+    await waitFor(() => expect(api.get).toHaveBeenCalled());
+
+    // Switch to compare mode
+    await user.click(screen.getByText('Compare'));
+
+    // Add first model
+    const input = screen.getByPlaceholderText('Search models to add...');
+    await user.click(input);
+    await user.click(screen.getByText('GPT-4o'));
+
+    // Add second model
+    await user.click(screen.getByPlaceholderText('Search models to add...'));
+    await user.click(screen.getByText('Claude 3'));
+
+    // Type prompt
+    const textarea = screen.getByLabelText('Prompt input');
+    await user.type(textarea, 'Compare test');
+
+    // Click Send
+    await user.click(screen.getByLabelText('Send prompt'));
+
+    // Verify parallel calls to the single-model endpoint
+    expect(api.sendPlaygroundPrompt).toHaveBeenCalledTimes(2);
+    expect(api.sendPlaygroundPrompt).toHaveBeenCalledWith(
+      'openai/gpt-4o',
+      'Compare test'
+    );
+    expect(api.sendPlaygroundPrompt).toHaveBeenCalledWith(
+      'anthropic/claude-3',
+      'Compare test'
+    );
+
+    // Wait for results
+    await waitFor(() => {
+      expect(screen.getByText('Response from GPT-4o')).toBeInTheDocument();
+    });
+    expect(screen.getByText('Response from Claude 3')).toBeInTheDocument();
+
+    // Check metadata
+    expect(screen.getByText(/100 tokens/)).toBeInTheDocument();
+    expect(screen.getByText(/80 tokens/)).toBeInTheDocument();
+  });
+
+  it('shows partial failure in compare mode', async () => {
+    const user = userEvent.setup();
+
+    // First model succeeds, second fails
+    api.sendPlaygroundPrompt
+      .mockResolvedValueOnce({
+        text: 'Success response',
+        tokens: 50,
+        latency: 800,
+        cost: 0.001,
+      })
+      .mockRejectedValueOnce({ message: 'Rate limit exceeded' });
+
+    renderPlaygroundPage();
+
+    await waitFor(() => expect(api.get).toHaveBeenCalled());
+
+    // Switch to compare mode
+    await user.click(screen.getByText('Compare'));
+
+    // Add models
+    await user.click(screen.getByPlaceholderText('Search models to add...'));
+    await user.click(screen.getByText('GPT-4o'));
+    await user.click(screen.getByPlaceholderText('Search models to add...'));
+    await user.click(screen.getByText('Claude 3'));
+
+    // Type prompt and send
+    const textarea = screen.getByLabelText('Prompt input');
+    await user.type(textarea, 'Test partial fail');
+    await user.click(screen.getByLabelText('Send prompt'));
+
+    // Wait for results
+    await waitFor(() => {
+      expect(screen.getByText('Success response')).toBeInTheDocument();
+    });
+
+    // Check partial failure indicator
+    expect(screen.getByText('1 model failed')).toBeInTheDocument();
+    expect(screen.getByText('Rate limit exceeded')).toBeInTheDocument();
+  });
+
+  it('Send is disabled with fewer than 2 models selected', async () => {
+    const user = userEvent.setup();
+    renderPlaygroundPage();
+
+    await waitFor(() => expect(api.get).toHaveBeenCalled());
+
+    // Switch to compare mode
+    await user.click(screen.getByText('Compare'));
+
+    // Add only 1 model
+    await user.click(screen.getByPlaceholderText('Search models to add...'));
+    await user.click(screen.getByText('GPT-4o'));
+
+    // Type prompt
+    const textarea = screen.getByLabelText('Prompt input');
+    await user.type(textarea, 'Test');
+
+    // Send should be disabled
+    const sendBtn = screen.getByLabelText('Send prompt');
+    expect(sendBtn).toBeDisabled();
+  });
+
+  it('switches back to single mode correctly', async () => {
+    const user = userEvent.setup();
+    renderPlaygroundPage();
+
+    await waitFor(() => expect(api.get).toHaveBeenCalled());
+
+    // Switch to compare mode
+    await user.click(screen.getByText('Compare'));
+    expect(
+      screen.getByPlaceholderText('Search models to add...')
+    ).toBeInTheDocument();
+
+    // Switch back
+    await user.click(screen.getByText('Single Model'));
+    expect(
+      screen.getByPlaceholderText('Search models...')
+    ).toBeInTheDocument();
   });
 });
