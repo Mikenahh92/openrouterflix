@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { create } from 'zustand';
 import { catalogSlice } from './catalogSlice';
 import { api } from '../../shared/lib/api';
+import { useStore } from '../../shared/lib/store.js';
 
 // Mock the api module
 vi.mock('../../shared/lib/api', () => ({
@@ -82,6 +83,7 @@ describe('catalogSlice', () => {
     });
     expect(state.sortBy).toBe('popularity');
     expect(state.searchQuery).toBe('');
+    expect(state.compareSelections).toEqual([]);
   });
 
   // TC-002: setFilter updates a single filter key
@@ -260,5 +262,118 @@ describe('catalogSlice', () => {
     expect(state.filters.priceMin).toBe(0.5);
     expect(state.filters.priceMax).toBe(10);
     expect(state.filters.ctxWindow).toBe(128000);
+  });
+});
+
+describe('catalogSlice — compare selections', () => {
+  let useTestStore;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    useTestStore = createTestStore();
+  });
+
+  // Helper to get current catalog state
+  function getCatalog() {
+    return useTestStore.getState().catalog;
+  }
+
+  // TC-01: toggleCompare adds model ID when not selected
+  it('TC-01: toggleCompare adds model ID when not selected', () => {
+    const result = getCatalog().toggleCompare('openai/gpt-4o');
+
+    expect(result).toBe(true);
+    expect(getCatalog().compareSelections).toEqual(['openai/gpt-4o']);
+  });
+
+  // TC-02: toggleCompare removes model ID when already selected
+  it('TC-02: toggleCompare removes model ID when already selected', () => {
+    getCatalog().toggleCompare('openai/gpt-4o');
+
+    const result = getCatalog().toggleCompare('openai/gpt-4o');
+
+    expect(result).toBe(true);
+    expect(getCatalog().compareSelections).toEqual([]);
+  });
+
+  // TC-03: toggleCompare enforces max 4 selections
+  it('TC-03: toggleCompare enforces max 4 selections', () => {
+    getCatalog().toggleCompare('a');
+    getCatalog().toggleCompare('b');
+    getCatalog().toggleCompare('c');
+    getCatalog().toggleCompare('d');
+
+    const result = getCatalog().toggleCompare('e');
+
+    expect(result).toBe(false);
+    expect(getCatalog().compareSelections).toEqual(['a', 'b', 'c', 'd']);
+  });
+
+  // TC-04: toggleCompare allows 4th selection
+  it('TC-04: toggleCompare allows 4th selection', () => {
+    getCatalog().toggleCompare('a');
+    getCatalog().toggleCompare('b');
+    getCatalog().toggleCompare('c');
+
+    const result = getCatalog().toggleCompare('d');
+
+    expect(result).toBe(true);
+    expect(getCatalog().compareSelections).toEqual(['a', 'b', 'c', 'd']);
+  });
+
+  // TC-05: clearCompareSelections empties the array
+  it('TC-05: clearCompareSelections empties the array', () => {
+    getCatalog().toggleCompare('a');
+    getCatalog().toggleCompare('b');
+    getCatalog().toggleCompare('c');
+
+    getCatalog().clearCompareSelections();
+
+    expect(getCatalog().compareSelections).toEqual([]);
+  });
+
+  // TC-06: isCompareSelected returns correct boolean
+  it('TC-06: isCompareSelected returns correct boolean', () => {
+    getCatalog().toggleCompare('a');
+    getCatalog().toggleCompare('b');
+
+    expect(getCatalog().isCompareSelected('a')).toBe(true);
+    expect(getCatalog().isCompareSelected('c')).toBe(false);
+  });
+
+  // TC-07: getCompareCount returns correct length
+  it('TC-07: getCompareCount returns correct length', () => {
+    getCatalog().toggleCompare('a');
+    getCatalog().toggleCompare('b');
+    getCatalog().toggleCompare('c');
+
+    expect(getCatalog().getCompareCount()).toBe(3);
+  });
+
+  // TC-08: toggleCompare is idempotent for same ID
+  it('TC-08: toggleCompare toggles same ID correctly (remove then add)', () => {
+    getCatalog().toggleCompare('a');
+
+    // Remove
+    getCatalog().toggleCompare('a');
+    expect(getCatalog().compareSelections).toEqual([]);
+
+    // Add again
+    getCatalog().toggleCompare('a');
+    expect(getCatalog().compareSelections).toEqual(['a']);
+  });
+
+  // TC-09: toggleCompare does not duplicate IDs
+  it('TC-09: toggleCompare does not duplicate IDs', () => {
+    getCatalog().toggleCompare('a');
+
+    // Remove
+    getCatalog().toggleCompare('a');
+    // Add
+    getCatalog().toggleCompare('a');
+    // Remove
+    getCatalog().toggleCompare('a');
+
+    expect(getCatalog().compareSelections).toEqual([]);
   });
 });

@@ -1,4 +1,5 @@
 import { NavLink, Outlet } from 'react-router'
+import CompareBar from '../components/CompareBar.jsx'
 
 const navLinks = [
   { to: '/', label: 'Catalog' },
@@ -36,6 +37,9 @@ export default function AppLayout() {
       <main className="flex-1">
         <Outlet />
       </main>
+
+      {/* Floating compare bar — visible when 2+ models selected */}
+      <CompareBar />
     </div>
   )
 }

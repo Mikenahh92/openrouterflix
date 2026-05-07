@@ -1,5 +1,5 @@
 /**
- * Zustand catalog slice — manages categories, models, and filter/sort/search state.
+ * Zustand catalog slice — manages categories, models, filter/sort/search state, and compare selections.
  */
 import { api } from '../../shared/lib/api.js';
 import { API_ROUTES } from '../../shared/lib/constants.js';
@@ -29,6 +29,9 @@ export function catalogSlice(set, get) {
     },
     sortBy: 'popularity',
     searchQuery: '',
+
+    // Compare selection state
+    compareSelections: [],
 
     // Actions
 
@@ -103,6 +106,67 @@ export function catalogSlice(set, get) {
           searchQuery: '',
         },
       }));
+    },
+
+    /**
+     * Toggle a model's presence in the compare selection array.
+     * Enforces a maximum of 4 selections.
+     * @param {string} modelId - The model ID to toggle
+     * @returns {boolean} true if toggled successfully, false if max reached
+     */
+    toggleCompare(modelId) {
+      const current = get().catalog.compareSelections;
+
+      if (current.includes(modelId)) {
+        // Remove from selection
+        set((s) => ({
+          catalog: {
+            ...s.catalog,
+            compareSelections: current.filter((id) => id !== modelId),
+          },
+        }));
+        return true;
+      }
+
+      if (current.length < 4) {
+        // Add to selection
+        set((s) => ({
+          catalog: {
+            ...s.catalog,
+            compareSelections: [...current, modelId],
+          },
+        }));
+        return true;
+      }
+
+      // Max reached
+      return false;
+    },
+
+    /**
+     * Clear all compare selections.
+     */
+    clearCompareSelections() {
+      set((s) => ({
+        catalog: { ...s.catalog, compareSelections: [] },
+      }));
+    },
+
+    /**
+     * Check if a model is currently selected for comparison.
+     * @param {string} modelId - The model ID to check
+     * @returns {boolean}
+     */
+    isCompareSelected(modelId) {
+      return get().catalog.compareSelections.includes(modelId);
+    },
+
+    /**
+     * Get the current number of models selected for comparison.
+     * @returns {number}
+     */
+    getCompareCount() {
+      return get().catalog.compareSelections.length;
     },
   };
 }
