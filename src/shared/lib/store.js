@@ -16,6 +16,7 @@
 
 import { create } from 'zustand';
 import { catalogSlice } from '../../features/catalog/catalogSlice.js';
+import { comparisonSlice } from '../../comparison/store.js';
 
 /**
  * Create a combined Zustand store from named slice functions.
@@ -52,6 +53,7 @@ export function createStore(sliceMap) {
  */
 const useStore = create((set, get) => ({
   catalog: catalogSlice(set, get),
+  comparison: comparisonSlice(set, get),
 }));
 
 export { useStore };
