@@ -3,12 +3,12 @@
  *
  * Returns store state + derived data for the PlaygroundPage component.
  * Triggers fetchModels on mount if models not yet loaded.
+ * Optionally accepts an initialModelId to pre-select from the URL.
  */
 import { useEffect } from 'react';
 import usePlaygroundStore from '../store';
 
-export default function usePlayground() {
-  // Single-model state
+export default function usePlayground(initialModelId) {
   const selectedModel = usePlaygroundStore((s) => s.selectedModel);
   const models = usePlaygroundStore((s) => s.models);
   const modelsLoaded = usePlaygroundStore((s) => s.modelsLoaded);
@@ -45,6 +45,16 @@ export default function usePlayground() {
       fetchModels();
     }
   }, [modelsLoaded, fetchModels]);
+
+  // Pre-select model from URL query param after models are loaded
+  useEffect(() => {
+    if (initialModelId && modelsLoaded && !selectedModel) {
+      const modelExists = models.some((m) => m.id === initialModelId);
+      if (modelExists) {
+        setSelectedModel(initialModelId);
+      }
+    }
+  }, [initialModelId, modelsLoaded, models, selectedModel, setSelectedModel]);
 
   // Resolve selected model info for display
   const selectedModelData = selectedModel

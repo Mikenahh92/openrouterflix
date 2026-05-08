@@ -4,9 +4,11 @@
  * Composes ModelSelector, PromptInput, and ResponsePanel in single mode.
  * Composes MultiModelSelector, PromptInput, and ComparisonGrid in compare mode.
  * Toggle between modes via tabs.
+ * Reads optional `?model=:id` query param to pre-select a model on load.
  * Uses the usePlayground hook for state management.
  * Terminal-inspired dark visual treatment.
  */
+import { useSearchParams } from 'react-router';
 import { Terminal, GitCompare } from 'lucide-react';
 import usePlayground from '../hooks/usePlayground';
 import ModelSelector from './ModelSelector';
@@ -16,6 +18,9 @@ import ResponsePanel from './ResponsePanel';
 import ComparisonGrid from './ComparisonGrid';
 
 export default function PlaygroundPage() {
+  const [searchParams] = useSearchParams();
+  const modelFromUrl = searchParams.get('model') || undefined;
+
   const {
     mode,
     selectedModel,
@@ -40,7 +45,7 @@ export default function PlaygroundPage() {
     removeCompareModel,
     submitCompare,
     clearCompare,
-  } = usePlayground();
+  } = usePlayground(modelFromUrl);
 
   const isCompareMode = mode === 'compare';
 

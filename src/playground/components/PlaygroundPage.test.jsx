@@ -2,7 +2,7 @@
  * Integration tests for PlaygroundPage.
  *
  * Tests the full flow: select model → type prompt → submit → response display.
- * Also tests multi-model comparison mode.
+ * Also tests multi-model comparison mode and deep-link behavior.
  * Uses mocked API to avoid backend dependency.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -30,9 +30,9 @@ const mockModels = [
   { id: 'google/gemini-pro', name: 'Gemini Pro', provider: 'Google' },
 ];
 
-function renderPlaygroundPage() {
+function renderPlaygroundPage(initialEntry = '/playground') {
   return render(
-    <MemoryRouter initialEntries={['/playground']}>
+    <MemoryRouter initialEntries={[initialEntry]}>
       <Routes>
         <Route path="/playground" element={<PlaygroundPage />} />
       </Routes>
@@ -370,5 +370,83 @@ describe('PlaygroundPage integration — compare mode', () => {
     expect(
       screen.getByPlaceholderText('Search models...')
     ).toBeInTheDocument();
+  });
+});
+
+describe('PlaygroundPage deep link', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    usePlaygroundStore.getState().clearAll();
+    usePlaygroundStore.setState({ modelsLoaded: false, models: [] });
+    api.get.mockResolvedValue({ data: { data: mockModels } });
+  });
+
+  it('pre-selects model from ?model= query param after models load', async () => {
+    const user = userEvent.setup();
+    renderPlaygroundPage('/playground?model=openai/gpt-4o');
+
+    // Wait for the model to be pre-selected — the selector shows the model name
+    // as a button (collapsed state) instead of the search input placeholder
+    await waitFor(() => {
+      expect(screen.queryByPlaceholderText('Search models...')).toBeNull();
+    }, { timeout: 3000 });
+
+    // Verify the selected model is displayed in the selector
+    expect(screen.getByText('GPT-4o')).toBeInTheDocument();
+
+    // Verify the full flow works: type a prompt and send
+    api.sendPlaygroundPrompt.mockResolvedValue({
+      text: 'Deep link response',
+      tokens: 42,
+      latency: 200,
+      cost: 0.001,
+    });
+
+    const textarea = screen.getByLabelText('Prompt input');
+    await user.type(textarea, 'Test from deep link');
+    await user.click(screen.getByLabelText('Send prompt'));
+
+    expect(api.sendPlaygroundPrompt).toHaveBeenCalledWith(
+      'openai/gpt-4o',
+      'Test from deep link'
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Deep link response')).toBeInTheDocument();
+    });
+  });
+
+  it('does not pre-select if model ID is not in the model list', async () => {
+    renderPlaygroundPage('/playground?model=nonexistent/model');
+
+    await waitFor(() => {
+      expect(api.get).toHaveBeenCalledWith('/models');
+    });
+
+    // Wait for models to be loaded and verify no model was selected
+    await waitFor(() => {
+      const state = usePlaygroundStore.getState();
+      expect(state.modelsLoaded).toBe(true);
+      expect(state.selectedModel).toBeNull();
+    });
+
+    // The search input placeholder should still be visible (no model selected)
+    expect(screen.getByPlaceholderText('Search models...')).toBeInTheDocument();
+  });
+
+  it('does not override an existing selection when model param is present', async () => {
+    usePlaygroundStore.setState({
+      selectedModel: 'anthropic/claude-3',
+      modelsLoaded: true,
+      models: mockModels,
+    });
+
+    renderPlaygroundPage('/playground?model=openai/gpt-4o');
+
+    await waitFor(() => {
+      expect(screen.getByText('Claude 3')).toBeInTheDocument();
+    });
+
+    expect(usePlaygroundStore.getState().selectedModel).toBe('anthropic/claude-3');
   });
 });

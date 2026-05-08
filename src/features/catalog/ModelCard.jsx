@@ -97,6 +97,7 @@ function MaxLimitToast({ visible }) {
 /**
  * Netflix-style model card with hero gradient, provider badge, spec rows,
  * category pills, hover effects, search highlighting, and compare checkbox.
+ * Includes a "Try this model" CTA that deep-links to the playground.
  *
  * @param {object} props
  * @param {object} props.model - Normalized model object
@@ -165,6 +166,20 @@ export default function ModelCard({ model }) {
               ★ {qualityScore}
             </span>
           )}
+
+          {/* Try this model CTA — appears on hover */}
+          <Link
+            to={`/playground?model=${encodeURIComponent(id)}`}
+            onClick={(e) => e.stopPropagation()}
+            data-testid="card-try-model-cta"
+            className="absolute bottom-2 right-2 px-2 py-1 text-[10px] font-semibold
+              bg-violet-500 hover:bg-violet-400 text-white rounded-md
+              opacity-0 group-hover:opacity-100 transition-opacity duration-200
+              focus-visible:opacity-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-violet-400"
+          >
+            Try this model
+          </Link>
+        </div>
 
           {/* Compare checkbox */}
           <button
