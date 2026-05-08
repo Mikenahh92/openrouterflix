@@ -22,6 +22,7 @@ export const DEFAULTS = {
   CACHE_TTL_MS: 5 * 60 * 1000, // 5 minutes
   PAGE_SIZE: 20,
   DEBOUNCE_MS: 300,
+  MAX_HISTORY_RUNS: 50,
 };
 
 /**

@@ -5,6 +5,7 @@ const navLinks = [
   { to: '/', label: 'Catalog' },
   { to: '/compare', label: 'Compare' },
   { to: '/playground', label: 'Playground' },
+  { to: '/history', label: 'History' },
 ]
 
 export default function AppLayout() {

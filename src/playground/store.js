@@ -37,6 +37,7 @@
  */
 import { create } from 'zustand';
 import { api } from '../shared/lib/api';
+import useRunHistoryStore from '../history/store';
 
 const MAX_COMPARE_MODELS = 4;
 const MIN_COMPARE_MODELS = 2;
@@ -97,6 +98,20 @@ const usePlaygroundStore = create((set, get) => ({
     try {
       const result = await api.sendPlaygroundPrompt(selectedModel, prompt);
       set({ response: result, isLoading: false });
+
+      // Record successful run in history
+      const model = get().models.find((m) => m.id === selectedModel);
+      useRunHistoryStore.getState().addRun({
+        type: 'playground',
+        modelId: selectedModel,
+        modelName: model?.name ?? selectedModel,
+        modelProvider: model?.provider ?? '',
+        prompt,
+        responseText: result.text,
+        tokens: result.tokens,
+        latency: result.latency,
+        cost: result.cost,
+      });
     } catch (err) {
       const message = err?.message || 'An unexpected error occurred';
       set({ error: message, isLoading: false });

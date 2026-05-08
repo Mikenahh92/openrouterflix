@@ -5,6 +5,7 @@ import CatalogPage from './features/catalog/CatalogPage'
 
 const DetailPage = lazy(() => import('./detail/components/DetailPage'))
 const PlaygroundPage = lazy(() => import('./playground/components/PlaygroundPage'))
+const HistoryPage = lazy(() => import('./history/components/HistoryPage'))
 
 function ComparePlaceholder() {
   return (
@@ -36,6 +37,14 @@ export default function App() {
           element={
             <Suspense fallback={<div className="max-w-[1440px] mx-auto px-12 py-12 text-slate-400">Loading…</div>}>
               <PlaygroundPage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="/history"
+          element={
+            <Suspense fallback={<div className="max-w-[1440px] mx-auto px-12 py-12 text-slate-400">Loading…</div>}>
+              <HistoryPage />
             </Suspense>
           }
         />
