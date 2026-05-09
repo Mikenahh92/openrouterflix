@@ -1,7 +1,7 @@
 /**
- * HistoryPage — displays run history with filters, delete, and clear-all.
+ * HistoryPage — displays run history with filters, delete, clear-all, and export/import.
  *
- * Composes HistoryFilters + HistoryList with local filter state.
+ * Composes HistoryFilters + HistoryList + ExportControls + ImportDialog with local filter state.
  * Filters are client-side (all records in memory, max 50).
  *
  * UX patterns:
@@ -10,12 +10,15 @@
  *   - Type dropdown (All / Playground / Comparison)
  *   - Accordion expansion (one record at a time)
  *   - Clear all with inline confirmation
+ *   - Export CSV/JSON and Import from JSON file
  */
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { Clock, Trash2, AlertTriangle } from 'lucide-react';
 import useHistory from '../hooks/useHistory';
 import HistoryFilters from './HistoryFilters';
 import HistoryList from './HistoryList';
+import ExportControls from './ExportControls';
+import ImportDialog from './ImportDialog';
 
 // --- Filter logic ---
 
@@ -50,7 +53,7 @@ function filterRuns(runs, dateRange, modelFilter, typeFilter) {
 }
 
 export default function HistoryPage() {
-  const { runs, deleteRun, clearAll } = useHistory();
+  const { runs, addRun, deleteRun, clearAll } = useHistory();
 
   // Filter state (local component state, not in store)
   const [dateRange, setDateRange] = useState('all');
@@ -62,6 +65,9 @@ export default function HistoryPage() {
 
   // Clear-all confirmation
   const [confirmClear, setConfirmClear] = useState(false);
+
+  // Import dialog state
+  const [importOpen, setImportOpen] = useState(false);
 
   // Filtered runs (memoized)
   const filteredRuns = useMemo(
@@ -92,6 +98,16 @@ export default function HistoryPage() {
     setTypeFilter('all');
   };
 
+  const handleImport = useCallback(
+    (records) => {
+      // Merge imported records into the store
+      for (const record of records) {
+        addRun(record);
+      }
+    },
+    [addRun]
+  );
+
   return (
     <div className="max-w-4xl mx-auto px-6 py-8">
       {/* Page header */}
@@ -100,20 +116,27 @@ export default function HistoryPage() {
           <Clock className="w-5 h-5 text-slate-400" />
           <h1 className="text-2xl font-semibold text-slate-100">Run History</h1>
         </div>
-        {runs.length > 0 && (
-          <button
-            type="button"
-            onClick={handleClearAll}
-            className={`inline-flex items-center gap-1.5 text-sm font-medium px-4 py-2 rounded-lg transition-colors cursor-pointer ${
-              confirmClear
-                ? 'bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/30'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
-            }`}
-          >
-            <Trash2 className="w-4 h-4" />
-            {confirmClear ? 'Confirm Clear All' : 'Clear all'}
-          </button>
-        )}
+        <div className="flex items-center gap-3">
+          <ExportControls
+            records={filteredRuns}
+            disabled={filteredRuns.length === 0}
+            onImportClick={() => setImportOpen(true)}
+          />
+          {runs.length > 0 && (
+            <button
+              type="button"
+              onClick={handleClearAll}
+              className={`inline-flex items-center gap-1.5 text-sm font-medium px-4 py-2 rounded-lg transition-colors cursor-pointer ${
+                confirmClear
+                  ? 'bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/30'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+              }`}
+            >
+              <Trash2 className="w-4 h-4" />
+              {confirmClear ? 'Confirm Clear All' : 'Clear all'}
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Clear-all confirmation bar */}
@@ -188,6 +211,13 @@ export default function HistoryPage() {
           onDelete={deleteRun}
         />
       )}
+
+      {/* Import Dialog */}
+      <ImportDialog
+        open={importOpen}
+        onClose={() => setImportOpen(false)}
+        onImport={handleImport}
+      />
     </div>
   );
 }

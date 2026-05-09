@@ -12,6 +12,7 @@ import { AlertTriangle, Plus } from 'lucide-react';
 import useComparison from '../hooks/useComparison';
 import ComparisonTable from './ComparisonTable';
 import ComparisonEmptyState from './ComparisonEmptyState';
+import PresetActions from './PresetActions';
 
 /* ─── Skeleton ─────────────────────────────────────────────────────── */
 
@@ -142,13 +143,16 @@ export default function ComparisonPage() {
             Comparison ({models.length} {models.length === 1 ? 'model' : 'models'})
           </h2>
         </div>
-        <Link
-          to="/"
-          className="inline-flex items-center gap-1.5 bg-surface-raised border border-slate-800 hover:border-violet-500 text-slate-100 rounded-lg px-4 py-2 text-sm font-medium transition-colors"
-        >
-          <Plus className="w-4 h-4" />
-          Add model
-        </Link>
+        <div className="flex items-center gap-2">
+          <PresetActions ids={ids} />
+          <Link
+            to="/"
+            className="inline-flex items-center gap-1.5 bg-surface-raised border border-slate-800 hover:border-violet-500 text-slate-100 rounded-lg px-4 py-2 text-sm font-medium transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            Add model
+          </Link>
+        </div>
       </div>
 
       {/* Error banner (partial success) */}

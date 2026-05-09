@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'react'
 import { Routes, Route } from 'react-router'
 import AppLayout from './shared/layouts/AppLayout'
 import CatalogPage from './features/catalog/CatalogPage'
+import { ConfigLoader } from './shared/lib/configLoader'
 
 const DetailPage = lazy(() => import('./detail/components/DetailPage'))
 const PlaygroundPage = lazy(() => import('./playground/components/PlaygroundPage'))
@@ -26,7 +27,9 @@ export default function App() {
           path="/compare"
           element={
             <Suspense fallback={<div className="max-w-[1440px] mx-auto px-12 py-12 text-slate-400">Loading…</div>}>
-              <ComparisonPage />
+              <ConfigLoader>
+                <ComparisonPage />
+              </ConfigLoader>
             </Suspense>
           }
         />

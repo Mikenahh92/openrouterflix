@@ -167,6 +167,7 @@ export default function ModelCard({ model }) {
             </span>
           )}
 
+
           {/* Compare checkbox */}
           <button
             type="button"
