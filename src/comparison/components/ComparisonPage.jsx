@@ -8,9 +8,10 @@
  * Lazy-loaded via React.lazy() in App.jsx.
  */
 import { Link } from 'react-router';
-import { Columns, AlertTriangle, Plus } from 'lucide-react';
+import { AlertTriangle, Plus } from 'lucide-react';
 import useComparison from '../hooks/useComparison';
 import ComparisonTable from './ComparisonTable';
+import ComparisonEmptyState from './ComparisonEmptyState';
 
 /* ─── Skeleton ─────────────────────────────────────────────────────── */
 
@@ -60,30 +61,6 @@ function ComparisonSkeleton() {
   );
 }
 
-/* ─── Empty State ──────────────────────────────────────────────────── */
-
-function EmptyState() {
-  return (
-    <div
-      className="max-w-md mx-auto text-center py-20"
-      role="status"
-      data-testid="comparison-empty"
-    >
-      <Columns className="w-12 h-12 text-slate-500 mx-auto mb-4" />
-      <h2 className="text-lg text-slate-100 mb-2">Select models to compare</h2>
-      <p className="text-sm text-slate-400 mb-6">
-        Choose at least 2 models from the catalog to start comparing.
-      </p>
-      <Link
-        to="/"
-        className="inline-block bg-violet-500 hover:bg-violet-400 text-white rounded-lg px-6 py-2 text-sm font-semibold transition-colors"
-      >
-        Browse Catalog
-      </Link>
-    </div>
-  );
-}
-
 /* ─── Error State ──────────────────────────────────────────────────── */
 
 function ErrorState({ error, onRetry }) {
@@ -122,8 +99,11 @@ export default function ComparisonPage() {
   // Empty state: fewer than 2 valid IDs
   if (ids.length < 2 && !loading) {
     return (
-      <div className="max-w-[1440px] mx-auto px-12 py-8 animate-fadeIn">
-        <EmptyState />
+      <div className="max-w-[1440px] mx-auto px-12 py-8">
+        <ComparisonEmptyState
+          modelCount={models.length}
+          singleModel={models.length === 1 ? models[0] : undefined}
+        />
       </div>
     );
   }

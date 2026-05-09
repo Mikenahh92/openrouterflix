@@ -75,8 +75,32 @@ describe('ComparisonPage', () => {
     };
   });
 
-  // TC-URL-05: Empty state when no IDs
-  it('TC-URL-05: shows empty state when fewer than 2 IDs', () => {
+  // TC-PAGE-01: Imports ComparisonEmptyState
+  it('TC-PAGE-01: imports and renders ComparisonEmptyState for empty state', () => {
+    mockHookReturn.ids = [];
+    mockHookReturn.loading = false;
+
+    renderComparisonPage('/compare');
+
+    expect(screen.getByTestId('comparison-empty')).toBeInTheDocument();
+  });
+
+  // TC-PAGE-02: Inline EmptyState function removed — verified by the component rendering correctly
+  it('TC-PAGE-02: renders enhanced empty state (not legacy inline version)', () => {
+    mockHookReturn.ids = [];
+    mockHookReturn.loading = false;
+
+    renderComparisonPage('/compare');
+
+    // Enhanced empty state has text-2xl headline (legacy had text-lg)
+    const h2 = screen.getByRole('heading', { level: 2 });
+    expect(h2.className).toContain('text-2xl');
+    // Enhanced has glow container with aria-hidden
+    expect(screen.getByTestId('comparison-empty').querySelector('[aria-hidden="true"]')).toBeInTheDocument();
+  });
+
+  // TC-PAGE-03: Conditional render at < 2 models (0 models)
+  it('TC-PAGE-03: renders ComparisonEmptyState when 0 models in store', () => {
     mockHookReturn.ids = [];
     mockHookReturn.loading = false;
 
@@ -84,15 +108,42 @@ describe('ComparisonPage', () => {
 
     expect(screen.getByTestId('comparison-empty')).toBeInTheDocument();
     expect(screen.getByText('Select models to compare')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /browse catalog/i })).toBeInTheDocument();
+    expect(screen.queryByTestId('comparison-skeleton')).not.toBeInTheDocument();
   });
 
-  // TC-URL-06: Empty state with single ID
-  it('TC-URL-06: shows empty state with single ID', () => {
+  // TC-PAGE-04: Conditional render at 1 model — partial state
+  it('TC-PAGE-04: renders ComparisonEmptyState with 1-model partial state', () => {
     mockHookReturn.ids = ['only-one'];
+    mockHookReturn.models = [mockModels[0]];
     mockHookReturn.loading = false;
 
     renderComparisonPage('/compare?ids=only-one');
+
+    expect(screen.getByTestId('comparison-empty')).toBeInTheDocument();
+    expect(screen.getByText('Almost there!')).toBeInTheDocument();
+    expect(screen.getByText('GPT-4o')).toBeInTheDocument();
+  });
+
+  // TC-PAGE-05: ComparisonTable renders at 2+ models
+  it('TC-PAGE-05: renders comparison table with 2 models', () => {
+    mockHookReturn.models = mockModels;
+    mockHookReturn.ids = ['a', 'b'];
+
+    renderComparisonPage();
+
+    expect(screen.getByText(/comparison \(2 models\)/i)).toBeInTheDocument();
+    expect(screen.getByText('GPT-4o')).toBeInTheDocument();
+    expect(screen.getByText('Claude 3.5 Sonnet')).toBeInTheDocument();
+    expect(screen.getByText('Provider')).toBeInTheDocument();
+    expect(screen.getByText('Input Price')).toBeInTheDocument();
+    expect(screen.queryByTestId('comparison-empty')).not.toBeInTheDocument();
+  });
+
+  // TC-PAGE-06: data-testid preserved
+  it('TC-PAGE-06: empty state has data-testid="comparison-empty"', () => {
+    mockHookReturn.ids = [];
+
+    renderComparisonPage('/compare');
 
     expect(screen.getByTestId('comparison-empty')).toBeInTheDocument();
   });
@@ -143,22 +194,8 @@ describe('ComparisonPage', () => {
     expect(screen.getByRole('link', { name: /back to catalog/i })).toBeInTheDocument();
   });
 
-  // TC-URL-01: Renders table with 2 models
-  it('TC-URL-01: renders comparison table with 2 models', () => {
-    mockHookReturn.models = mockModels;
-    mockHookReturn.ids = ['a', 'b'];
-
-    renderComparisonPage();
-
-    expect(screen.getByText(/comparison \(2 models\)/i)).toBeInTheDocument();
-    expect(screen.getByText('GPT-4o')).toBeInTheDocument();
-    expect(screen.getByText('Claude 3.5 Sonnet')).toBeInTheDocument();
-    expect(screen.getByText('Provider')).toBeInTheDocument();
-    expect(screen.getByText('Input Price')).toBeInTheDocument();
-  });
-
   // TC-URL-02: Renders table with 3 models
-  it('TC-URL-02: renders table with 3 models', () => {
+  it('TC-URL-02: renders comparison table with 3 models', () => {
     mockHookReturn.models = [
       ...mockModels,
       {
@@ -219,14 +256,24 @@ describe('ComparisonPage', () => {
     expect(screen.getByText(/some models could not be loaded/i)).toBeInTheDocument();
   });
 
-  // TC-EMPTY-03: Empty state ARIA
+  // TC-EMPTY-03: Empty state ARIA (role="status")
   it('TC-EMPTY-03: empty state has role="status"', () => {
     mockHookReturn.ids = [];
 
-    renderComparisonPage();
+    renderComparisonPage('/compare');
 
     const emptyState = screen.getByTestId('comparison-empty');
     expect(emptyState).toHaveAttribute('role', 'status');
+  });
+
+  // TC-EMPTY-04: Empty state has aria-live="polite"
+  it('TC-EMPTY-04: empty state has aria-live="polite"', () => {
+    mockHookReturn.ids = [];
+
+    renderComparisonPage('/compare');
+
+    const emptyState = screen.getByTestId('comparison-empty');
+    expect(emptyState).toHaveAttribute('aria-live', 'polite');
   });
 
   // TC-ERR-06: Error state ARIA
