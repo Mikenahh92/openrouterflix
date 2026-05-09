@@ -5,6 +5,13 @@
  *   - Desktop (≥1024px, `lg`): 2-col grid for all model counts (2-col for 2, 2×2 for 3–4).
  *   - Tablet (768–1023px, `md`): 2-col for 2 models; 1-col stacked for 3+.
  *   - Mobile (<768px): Always 1-col stacked.
+ *
+ * Diff integration (ORF-025):
+ *   - When compareResults.length >= 2, shows a "Diff" button in the header.
+ *   - Clicking Diff opens DiffView in place of the card grid.
+ *   - With exactly 2 results, DiffView opens immediately.
+ *   - With 3–4 results, a pair selector is shown first.
+ *   - Diff state is local (useState) — not persisted in the Zustand store.
  */
 import { useState, useEffect, useRef } from 'react';
 import {
@@ -15,7 +22,9 @@ import {
   AlertTriangle,
   RefreshCw,
   Clock,
+  GitCompareArrows,
 } from 'lucide-react';
+import DiffView from './DiffView';
 
 function formatTokens(n) {
   return n != null ? new Intl.NumberFormat('en-US').format(n) : '0';
@@ -147,6 +156,60 @@ function ModelResultCard({ modelData, result, error, isLoading, models, onRetry 
 }
 
 /**
+ * Pair selector dropdown for choosing which two results to diff.
+ */
+function PairSelector({
+  results,
+  models,
+  pair,
+  onPairChange,
+}) {
+  const options = results.map((r) => {
+    const modelInfo = models.find((m) => m.id === r.model);
+    return {
+      modelId: r.model,
+      name: modelInfo?.name || r.model,
+      provider: modelInfo?.provider || null,
+    };
+  });
+
+  const selectClass =
+    'bg-surface-overlay border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-100 cursor-pointer focus:outline-none focus:ring-1 focus:ring-violet-500';
+
+  return (
+    <div className="flex items-center gap-3 mb-4">
+      <select
+        value={pair[0] || ''}
+        onChange={(e) => onPairChange([e.target.value, pair[1]])}
+        className={selectClass}
+        aria-label="Select first model to compare"
+      >
+        {options.map((opt) => (
+          <option key={opt.modelId} value={opt.modelId} disabled={opt.modelId === pair[1]}>
+            {opt.name}{opt.provider ? ` (${opt.provider})` : ''}
+          </option>
+        ))}
+      </select>
+
+      <span className="text-xs text-slate-500">vs</span>
+
+      <select
+        value={pair[1] || ''}
+        onChange={(e) => onPairChange([pair[0], e.target.value])}
+        className={selectClass}
+        aria-label="Select second model to compare"
+      >
+        {options.map((opt) => (
+          <option key={opt.modelId} value={opt.modelId} disabled={opt.modelId === pair[0]}>
+            {opt.name}{opt.provider ? ` (${opt.provider})` : ''}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
+/**
  * Resolve Tailwind grid classes for the comparison layout.
  *
  * Desktop (lg ≥1024px): Always 2 columns — `lg:grid-cols-2`
@@ -176,6 +239,11 @@ export default function ComparisonGrid({
   isCompareLoading,
   onRetry,
 }) {
+  // Diff view state (local, not persisted in store)
+  const [isDiffViewOpen, setIsDiffViewOpen] = useState(false);
+  const [diffPair, setDiffPair] = useState([null, null]);
+  const [diffDisplayMode, setDiffDisplayMode] = useState('unified');
+
   if (selectedModels.length === 0 && !isCompareLoading) {
     return (
       <div className="bg-surface-raised rounded-xl p-5" aria-live="polite">
@@ -198,17 +266,81 @@ export default function ComparisonGrid({
 
   const gridClasses = getGridClasses(selectedModels.length);
 
+  const showDiffButton = compareResults.length >= 2 && !isCompareLoading;
+
+  const handleOpenDiff = () => {
+    if (compareResults.length === 2) {
+      setDiffPair([compareResults[0].model, compareResults[1].model]);
+    } else {
+      // Pre-select first two successful results
+      setDiffPair([compareResults[0].model, compareResults[1].model]);
+    }
+    setDiffDisplayMode('unified');
+    setIsDiffViewOpen(true);
+  };
+
+  const handleBackToGrid = () => {
+    setIsDiffViewOpen(false);
+    setDiffPair([null, null]);
+  };
+
+  // When diff view is open, render DiffView instead of the grid
+  if (isDiffViewOpen) {
+    const resultA = compareResults.find((r) => r.model === diffPair[0]);
+    const resultB = compareResults.find((r) => r.model === diffPair[1]);
+    const modelA = models.find((m) => m.id === diffPair[0]);
+    const modelB = models.find((m) => m.id === diffPair[1]);
+
+    return (
+      <div className="bg-surface-raised rounded-xl p-5">
+        {/* Pair selector when 3+ results */}
+        {compareResults.length > 2 && (
+          <PairSelector
+            results={compareResults}
+            models={models}
+            pair={diffPair}
+            onPairChange={setDiffPair}
+          />
+        )}
+
+        <DiffView
+          textA={resultA?.text ?? ''}
+          textB={resultB?.text ?? ''}
+          labelA={modelA?.name ?? diffPair[0] ?? 'Model A'}
+          labelB={modelB?.name ?? diffPair[1] ?? 'Model B'}
+          displayMode={diffDisplayMode}
+          onDisplayModeChange={setDiffDisplayMode}
+          onBack={handleBackToGrid}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="bg-surface-raised rounded-xl p-5" aria-live="polite">
       <div className="flex items-center justify-between mb-3">
         <div className="text-xs font-medium text-slate-500 uppercase tracking-wide">
           Comparison
         </div>
-        {compareErrors.length > 0 && compareResults.length > 0 && (
-          <span className="text-xs text-amber-400">
-            {compareErrors.length} model{compareErrors.length > 1 ? 's' : ''} failed
-          </span>
-        )}
+
+        <div className="flex items-center gap-3">
+          {showDiffButton && (
+            <button
+              type="button"
+              className="bg-surface-base border border-slate-800 hover:border-violet-500 text-slate-100 rounded-lg px-3 py-1.5 text-xs transition-colors cursor-pointer inline-flex items-center gap-1.5"
+              onClick={handleOpenDiff}
+            >
+              <GitCompareArrows className="w-3.5 h-3.5" />
+              Diff
+            </button>
+          )}
+
+          {compareErrors.length > 0 && compareResults.length > 0 && (
+            <span className="text-xs text-amber-400">
+              {compareErrors.length} model{compareErrors.length > 1 ? 's' : ''} failed
+            </span>
+          )}
+        </div>
       </div>
 
       <div className={gridClasses}>
