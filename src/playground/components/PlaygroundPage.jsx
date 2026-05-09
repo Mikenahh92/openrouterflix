@@ -7,7 +7,9 @@
  * Reads optional `?model=:id` query param to pre-select a model on load.
  * Uses the usePlayground hook for state management.
  * Terminal-inspired dark visual treatment.
+ * Integrates with template picker for loading prompt templates.
  */
+import { useState } from 'react';
 import { useSearchParams } from 'react-router';
 import { Terminal, GitCompare } from 'lucide-react';
 import usePlayground from '../hooks/usePlayground';
@@ -16,10 +18,12 @@ import MultiModelSelector from './MultiModelSelector';
 import PromptInput from './PromptInput';
 import ResponsePanel from './ResponsePanel';
 import ComparisonGrid from './ComparisonGrid';
+import TemplatePicker from '../../templates/components/TemplatePicker';
 
 export default function PlaygroundPage() {
   const [searchParams] = useSearchParams();
   const modelFromUrl = searchParams.get('model') || undefined;
+  const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
 
   const {
     mode,
@@ -123,6 +127,7 @@ export default function PlaygroundPage() {
           onPromptChange={setPrompt}
           onSend={handleSend}
           onClear={handleClear}
+          onLoadTemplate={() => setIsTemplateModalOpen(true)}
           isLoading={isSending}
           isDisabled={isSendDisabled}
         />
@@ -148,6 +153,17 @@ export default function PlaygroundPage() {
           />
         )}
       </div>
+
+      {/* Template picker modal */}
+      {isTemplateModalOpen && (
+        <TemplatePicker
+          onClose={() => setIsTemplateModalOpen(false)}
+          onApply={(resolvedText) => {
+            setPrompt(resolvedText);
+            setIsTemplateModalOpen(false);
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -167,20 +167,6 @@ export default function ModelCard({ model }) {
             </span>
           )}
 
-          {/* Try this model CTA — appears on hover */}
-          <Link
-            to={`/playground?model=${encodeURIComponent(id)}`}
-            onClick={(e) => e.stopPropagation()}
-            data-testid="card-try-model-cta"
-            className="absolute bottom-2 right-2 px-2 py-1 text-[10px] font-semibold
-              bg-violet-500 hover:bg-violet-400 text-white rounded-md
-              opacity-0 group-hover:opacity-100 transition-opacity duration-200
-              focus-visible:opacity-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-violet-400"
-          >
-            Try this model
-          </Link>
-        </div>
-
           {/* Compare checkbox */}
           <button
             type="button"
@@ -193,7 +179,7 @@ export default function ModelCard({ model }) {
             }
             onClick={handleCompareClick}
             disabled={isMaxReached}
-            className={`absolute top-2 right-2 z-10 p-1 rounded-md transition-colors duration-150
+            className={`absolute top-2 left-1/2 -translate-x-1/2 z-10 p-1 rounded-md transition-colors duration-150
               ${isMaxReached
                 ? 'text-slate-600 cursor-not-allowed'
                 : isSelected
@@ -208,6 +194,19 @@ export default function ModelCard({ model }) {
               <Square className="w-5 h-5" />
             )}
           </button>
+
+          {/* Try this model CTA — appears on hover */}
+          <Link
+            to={`/playground?model=${encodeURIComponent(id)}`}
+            onClick={(e) => e.stopPropagation()}
+            data-testid="card-try-model-cta"
+            className="absolute bottom-2 right-2 px-2 py-1 text-[10px] font-semibold
+              bg-violet-500 hover:bg-violet-400 text-white rounded-md
+              opacity-0 group-hover:opacity-100 transition-opacity duration-200
+              focus-visible:opacity-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-violet-400"
+          >
+            Try this model
+          </Link>
         </div>
 
         {/* Card body */}

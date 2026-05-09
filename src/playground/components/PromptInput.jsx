@@ -6,16 +6,18 @@
  *   - Character counter (informational)
  *   - Send button (primary violet, disabled when empty/loading)
  *   - Clear button (ghost variant)
+ *   - Load Template button (ghost variant, opens template picker)
  *   - Ctrl+Enter keyboard shortcut to send
  */
 import { useRef, useCallback } from 'react';
-import { Zap, Trash2 } from 'lucide-react';
+import { Zap, Trash2, BookOpen } from 'lucide-react';
 
 export default function PromptInput({
   prompt,
   onPromptChange,
   onSend,
   onClear,
+  onLoadTemplate,
   isLoading,
   isDisabled,
 }) {
@@ -91,6 +93,17 @@ export default function PromptInput({
             <Trash2 className="w-4 h-4" />
             Clear
           </button>
+          {onLoadTemplate && (
+            <button
+              type="button"
+              aria-label="Load template"
+              className="text-slate-400 hover:text-white hover:bg-surface-overlay rounded-lg px-3 py-1.5 text-sm transition-colors inline-flex items-center gap-1.5 cursor-pointer"
+              onClick={onLoadTemplate}
+            >
+              <BookOpen className="w-4 h-4" />
+              Load Template
+            </button>
+          )}
           <button
             type="button"
             aria-label="Send prompt"

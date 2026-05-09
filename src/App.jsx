@@ -7,6 +7,7 @@ const DetailPage = lazy(() => import('./detail/components/DetailPage'))
 const PlaygroundPage = lazy(() => import('./playground/components/PlaygroundPage'))
 const HistoryPage = lazy(() => import('./history/components/HistoryPage'))
 const ComparisonPage = lazy(() => import('./comparison/components/ComparisonPage'))
+const TemplateLibraryPage = lazy(() => import('./templates/components/TemplateLibraryPage'))
 
 export default function App() {
   return (
@@ -42,6 +43,14 @@ export default function App() {
           element={
             <Suspense fallback={<div className="max-w-[1440px] mx-auto px-12 py-12 text-slate-400">Loading…</div>}>
               <HistoryPage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="/templates"
+          element={
+            <Suspense fallback={<div className="max-w-[1440px] mx-auto px-12 py-12 text-slate-400">Loading…</div>}>
+              <TemplateLibraryPage />
             </Suspense>
           }
         />

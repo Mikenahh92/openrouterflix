@@ -6,6 +6,7 @@ const navLinks = [
   { to: '/compare', label: 'Compare' },
   { to: '/playground', label: 'Playground' },
   { to: '/history', label: 'History' },
+  { to: '/templates', label: 'Templates' },
 ]
 
 export default function AppLayout() {
