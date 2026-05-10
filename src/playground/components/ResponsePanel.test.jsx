@@ -16,6 +16,7 @@ describe('ResponsePanel', () => {
         onRetry={vi.fn()}
         modelName={null}
         modelProvider={null}
+        modelContextWindow={null}
       />
     );
     expect(screen.getByText('Response')).toBeInTheDocument();
@@ -31,6 +32,7 @@ describe('ResponsePanel', () => {
         onRetry={vi.fn()}
         modelName={null}
         modelProvider={null}
+        modelContextWindow={null}
       />
     );
     expect(
@@ -48,6 +50,7 @@ describe('ResponsePanel', () => {
         onRetry={vi.fn()}
         modelName="gpt-4o"
         modelProvider="OpenAI"
+        modelContextWindow={null}
       />
     );
     expect(screen.getByTestId('loading-status')).toBeInTheDocument();
@@ -64,6 +67,7 @@ describe('ResponsePanel', () => {
         onRetry={vi.fn()}
         modelName="gpt-4o"
         modelProvider="OpenAI"
+        modelContextWindow={null}
       />
     );
     expect(screen.getByLabelText('Loading response')).toBeInTheDocument();
@@ -84,6 +88,7 @@ describe('ResponsePanel', () => {
         onRetry={vi.fn()}
         modelName="gpt-4o"
         modelProvider="OpenAI"
+        modelContextWindow={null}
       />
     );
     expect(screen.getByText('Hello! How can I help?')).toBeInTheDocument();
@@ -107,6 +112,7 @@ describe('ResponsePanel', () => {
         onRetry={vi.fn()}
         modelName="gpt-4o"
         modelProvider="OpenAI"
+        modelContextWindow={null}
       />
     );
     expect(screen.getByText('gpt-4o')).toBeInTheDocument();
@@ -127,6 +133,7 @@ describe('ResponsePanel', () => {
         onRetry={vi.fn()}
         modelName="gpt-4o"
         modelProvider="OpenAI"
+        modelContextWindow={null}
       />
     );
     expect(screen.getByText('N/A')).toBeInTheDocument();
@@ -142,6 +149,7 @@ describe('ResponsePanel', () => {
         onRetry={vi.fn()}
         modelName="gpt-4o"
         modelProvider="OpenAI"
+        modelContextWindow={null}
       />
     );
     expect(screen.getByText('Error')).toBeInTheDocument();
@@ -158,6 +166,7 @@ describe('ResponsePanel', () => {
         onRetry={vi.fn()}
         modelName="gpt-4o"
         modelProvider="OpenAI"
+        modelContextWindow={null}
       />
     );
     expect(screen.getByRole('alert')).toHaveTextContent('Something went wrong');
@@ -174,6 +183,7 @@ describe('ResponsePanel', () => {
         onRetry={onRetry}
         modelName="gpt-4o"
         modelProvider="OpenAI"
+        modelContextWindow={null}
       />
     );
     await user.click(screen.getByText('Retry'));
@@ -190,6 +200,7 @@ describe('ResponsePanel', () => {
         onRetry={vi.fn()}
         modelName={null}
         modelProvider={null}
+        modelContextWindow={null}
       />
     );
     // The outer div with aria-live
@@ -208,6 +219,7 @@ describe('ResponsePanel', () => {
         onRetry={vi.fn()}
         modelName="gpt-4o"
         modelProvider="OpenAI"
+        modelContextWindow={null}
       />
     );
 
@@ -238,6 +250,7 @@ describe('ResponsePanel', () => {
         onRetry={vi.fn()}
         modelName="gpt-4o"
         modelProvider="OpenAI"
+        modelContextWindow={null}
       />
     );
 
@@ -263,6 +276,7 @@ describe('ResponsePanel', () => {
         onRetry={vi.fn()}
         modelName="gpt-4o"
         modelProvider="OpenAI"
+        modelContextWindow={null}
       />
     );
 
@@ -276,5 +290,122 @@ describe('ResponsePanel', () => {
     expect(screen.queryByTestId('loading-status')).not.toBeInTheDocument();
 
     vi.useRealTimers();
+  });
+
+  // ORF-037: Token Usage Bar
+  describe('token usage bar', () => {
+    it('renders token usage bar when both tokens and contextWindow are provided', () => {
+      const { container } = render(
+        <ResponsePanel
+          response={{ text: 'Hi', tokens: 500, latency: 200, cost: 0.001 }}
+          isLoading={false}
+          error={null}
+          onRetry={vi.fn()}
+          modelName="gpt-4o"
+          modelProvider="OpenAI"
+          modelContextWindow={4096}
+        />
+      );
+      // Bar should exist — 500/4096 ≈ 12.2%, so green
+      const bar = container.querySelector('.bg-emerald-500.h-full');
+      expect(bar).toBeInTheDocument();
+      expect(screen.getByText(/500.*4,096.*tokens/)).toBeInTheDocument();
+    });
+
+    it('uses amber color for 50-80% usage', () => {
+      const { container } = render(
+        <ResponsePanel
+          response={{ text: 'Hi', tokens: 2500, latency: 200, cost: 0.001 }}
+          isLoading={false}
+          error={null}
+          onRetry={vi.fn()}
+          modelName="gpt-4o"
+          modelProvider="OpenAI"
+          modelContextWindow={4096}
+        />
+      );
+      // 2500/4096 ≈ 61% → amber
+      const bar = container.querySelector('.bg-amber-500.h-full');
+      expect(bar).toBeInTheDocument();
+    });
+
+    it('uses red color for >80% usage', () => {
+      const { container } = render(
+        <ResponsePanel
+          response={{ text: 'Hi', tokens: 3500, latency: 200, cost: 0.001 }}
+          isLoading={false}
+          error={null}
+          onRetry={vi.fn()}
+          modelName="gpt-4o"
+          modelProvider="OpenAI"
+          modelContextWindow={4096}
+        />
+      );
+      // 3500/4096 ≈ 85% → red
+      const bar = container.querySelector('.bg-red-500.h-full');
+      expect(bar).toBeInTheDocument();
+    });
+
+    it('caps at 100% width when tokens exceed context window', () => {
+      const { container } = render(
+        <ResponsePanel
+          response={{ text: 'Hi', tokens: 8000, latency: 200, cost: 0.001 }}
+          isLoading={false}
+          error={null}
+          onRetry={vi.fn()}
+          modelName="gpt-4o"
+          modelProvider="OpenAI"
+          modelContextWindow={4096}
+        />
+      );
+      const bar = container.querySelector('[style*="width"]');
+      expect(bar).toBeInTheDocument();
+      expect(bar.style.width).toBe('100%');
+    });
+
+    it('hides bar when modelContextWindow is null', () => {
+      const { container } = render(
+        <ResponsePanel
+          response={{ text: 'Hi', tokens: 500, latency: 200, cost: 0.001 }}
+          isLoading={false}
+          error={null}
+          onRetry={vi.fn()}
+          modelName="gpt-4o"
+          modelProvider="OpenAI"
+          modelContextWindow={null}
+        />
+      );
+      expect(container.querySelector('.bg-surface-base.h-2')).not.toBeInTheDocument();
+    });
+
+    it('hides bar when tokens is null', () => {
+      const { container } = render(
+        <ResponsePanel
+          response={{ text: 'Hi', tokens: null, latency: 200, cost: 0.001 }}
+          isLoading={false}
+          error={null}
+          onRetry={vi.fn()}
+          modelName="gpt-4o"
+          modelProvider="OpenAI"
+          modelContextWindow={4096}
+        />
+      );
+      expect(container.querySelector('.bg-surface-base.h-2')).not.toBeInTheDocument();
+    });
+
+    it('hides bar when modelContextWindow is 0', () => {
+      const { container } = render(
+        <ResponsePanel
+          response={{ text: 'Hi', tokens: 500, latency: 200, cost: 0.001 }}
+          isLoading={false}
+          error={null}
+          onRetry={vi.fn()}
+          modelName="gpt-4o"
+          modelProvider="OpenAI"
+          modelContextWindow={0}
+        />
+      );
+      expect(container.querySelector('.bg-surface-base.h-2')).not.toBeInTheDocument();
+    });
   });
 });

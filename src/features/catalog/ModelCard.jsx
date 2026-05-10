@@ -17,6 +17,31 @@ function formatPrice(value) {
 }
 
 /**
+ * Classify speed tier from latency in milliseconds.
+ * @param {number|null} latency - Latency in ms
+ * @returns {{ label: string, colorClass: string } | null}
+ */
+function getSpeedTier(latency) {
+  if (latency == null) return null;
+  if (latency <= 200) return { label: 'Fast', colorClass: 'text-emerald-400 bg-emerald-500/10' };
+  if (latency <= 500) return { label: 'Medium', colorClass: 'text-amber-400 bg-amber-500/10' };
+  return { label: 'Slow', colorClass: 'text-red-400 bg-red-500/10' };
+}
+
+/**
+ * Classify cost tier from prompt pricing (per 1M tokens).
+ * @param {number|null} price - Price per 1M tokens in USD
+ * @returns {{ label: string, colorClass: string } | null}
+ */
+function getCostTier(price) {
+  if (price == null) return null;
+  if (price === 0) return { label: 'Free', colorClass: 'text-emerald-400 bg-emerald-500/10' };
+  if (price < 0.5) return { label: 'Budget', colorClass: 'text-emerald-400 bg-emerald-500/10' };
+  if (price <= 5) return { label: 'Standard', colorClass: 'text-amber-400 bg-amber-500/10' };
+  return { label: 'Premium', colorClass: 'text-red-400 bg-red-500/10' };
+}
+
+/**
  * Format context window size to a human-readable string.
  * @param {number|null} tokens - Context length in tokens
  * @returns {string} Formatted context string
@@ -111,6 +136,7 @@ export default function ModelCard({ model }) {
     contextWindow,
     categories,
     qualityScore,
+    latency,
   } = model;
 
   // Get active search query for highlighting
@@ -238,6 +264,30 @@ export default function ModelCard({ model }) {
               </span>
             </div>
           </div>
+
+          {/* Performance Badges */}
+          {(getSpeedTier(latency) || getCostTier(pricing?.prompt)) && (
+            <div className="flex flex-wrap gap-1.5 mb-2">
+              {(() => {
+                const speedTier = getSpeedTier(latency);
+                const costTier = getCostTier(pricing?.prompt);
+                return (
+                  <>
+                    {speedTier && (
+                      <span className={`text-[9px] font-bold uppercase tracking-wide rounded px-1.5 py-0.5 ${speedTier.colorClass}`}>
+                        {speedTier.label}
+                      </span>
+                    )}
+                    {costTier && (
+                      <span className={`text-[9px] font-bold uppercase tracking-wide rounded px-1.5 py-0.5 ${costTier.colorClass}`}>
+                        {costTier.label}
+                      </span>
+                    )}
+                  </>
+                );
+              })()}
+            </div>
+          )}
 
           {/* Category pills */}
           {categories && categories.length > 0 && (

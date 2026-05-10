@@ -172,3 +172,85 @@ describe('ModelCard — compare checkbox', () => {
     expect(checkbox).toHaveAttribute('aria-label', 'Remove GPT-4o from comparison');
   });
 });
+
+// ORF-037: Performance Badges
+describe('ModelCard — performance badges', () => {
+  it('shows Fast speed badge for latency <= 200ms', () => {
+    const model = { ...mockModel, latency: 150 };
+    renderCard(model);
+
+    expect(screen.getByText('Fast')).toBeInTheDocument();
+  });
+
+  it('shows Medium speed badge for latency 200-500ms', () => {
+    const model = { ...mockModel, latency: 350 };
+    renderCard(model);
+
+    expect(screen.getByText('Medium')).toBeInTheDocument();
+  });
+
+  it('shows Slow speed badge for latency > 500ms', () => {
+    const model = { ...mockModel, latency: 800 };
+    renderCard(model);
+
+    expect(screen.getByText('Slow')).toBeInTheDocument();
+  });
+
+  it('shows Budget cost badge for pricing < $0.50/1M', () => {
+    renderCard(mockModel); // pricing.prompt = 2.5 — Standard tier
+
+    // mockModel has pricing.prompt = 2.5 → Standard
+    expect(screen.getByText('Standard')).toBeInTheDocument();
+  });
+
+  it('shows Free cost badge for pricing = 0', () => {
+    const model = { ...mockModel, pricing: { prompt: 0, completion: 0 } };
+    renderCard(model);
+
+    // "Free" appears in both pricing rows and the performance badge
+    const freeElements = screen.getAllByText('Free');
+    expect(freeElements.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('shows Premium cost badge for pricing > $5/1M', () => {
+    const model = { ...mockModel, pricing: { prompt: 10, completion: 30 } };
+    renderCard(model);
+
+    expect(screen.getByText('Premium')).toBeInTheDocument();
+  });
+
+  it('hides speed badge when latency is null', () => {
+    const model = { ...mockModel, latency: null };
+    renderCard(model);
+
+    // Should still show cost badge (Standard at $2.50)
+    expect(screen.getByText('Standard')).toBeInTheDocument();
+    expect(screen.queryByText('Fast')).not.toBeInTheDocument();
+    expect(screen.queryByText('Medium')).not.toBeInTheDocument();
+    expect(screen.queryByText('Slow')).not.toBeInTheDocument();
+  });
+
+  it('hides cost badge when pricing is null', () => {
+    const model = { ...mockModel, pricing: null, latency: 150 };
+    renderCard(model);
+
+    expect(screen.getByText('Fast')).toBeInTheDocument();
+    expect(screen.queryByText('Free')).not.toBeInTheDocument();
+    expect(screen.queryByText('Budget')).not.toBeInTheDocument();
+    expect(screen.queryByText('Standard')).not.toBeInTheDocument();
+    expect(screen.queryByText('Premium')).not.toBeInTheDocument();
+  });
+
+  it('hides all badges when both latency and pricing are null', () => {
+    const model = { ...mockModel, pricing: null, latency: null };
+    renderCard(model);
+
+    expect(screen.queryByText('Fast')).not.toBeInTheDocument();
+    expect(screen.queryByText('Medium')).not.toBeInTheDocument();
+    expect(screen.queryByText('Slow')).not.toBeInTheDocument();
+    expect(screen.queryByText('Free')).not.toBeInTheDocument();
+    expect(screen.queryByText('Budget')).not.toBeInTheDocument();
+    expect(screen.queryByText('Standard')).not.toBeInTheDocument();
+    expect(screen.queryByText('Premium')).not.toBeInTheDocument();
+  });
+});

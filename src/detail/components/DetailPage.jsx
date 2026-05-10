@@ -8,6 +8,7 @@
  * Uses the splat (*) route param to support model IDs containing
  * slashes (e.g. "openai/gpt-4o").
  */
+import { useMemo } from 'react';
 import { useParams, Link, useNavigate } from 'react-router';
 import {
   Star,
@@ -17,6 +18,7 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import useModelDetail from '../hooks/useModelDetail';
+import { useStore } from '../../shared/lib/store.js';
 
 /* ─── Helpers ──────────────────────────────────────────────────────── */
 
@@ -184,6 +186,20 @@ export default function DetailPage() {
   const isFree = model.pricing?.prompt === 0 && model.pricing?.completion === 0;
   const hasPricing = model.pricing?.prompt != null || model.pricing?.completion != null;
 
+  // Compute pricing percentile from catalog models
+  const catalogModels = useStore((s) => s.catalog?.models ?? []);
+  const pricePercentile = useMemo(() => {
+    if (isFree || !hasPricing || catalogModels.length === 0) return null;
+    const currentPrice = model.pricing?.prompt;
+    if (currentPrice == null) return null;
+    const prices = catalogModels
+      .map((m) => m.pricing?.prompt)
+      .filter((p) => p != null && p > 0);
+    if (prices.length === 0) return null;
+    const lowerCount = prices.filter((p) => p < currentPrice).length;
+    return Math.round((lowerCount / prices.length) * 100);
+  }, [catalogModels, model.pricing?.prompt, isFree, hasPricing]);
+
   return (
     <div className="max-w-[1440px] mx-auto px-12 py-8 animate-fadeIn">
       {/* Back Navigation */}
@@ -304,6 +320,38 @@ export default function DetailPage() {
             </div>
           ) : (
             <p className="text-slate-500 text-sm">Pricing not available</p>
+          )}
+
+          {/* Pricing Percentile Bar */}
+          {isFree && (
+            <div className="mt-4 pt-3 border-t border-slate-800" aria-hidden="true">
+              <div className="flex items-center justify-between text-xs mb-1.5">
+                <span className="text-emerald-400 font-medium">Free — cheapest tier</span>
+              </div>
+              <div className="h-2 rounded-full overflow-hidden bg-surface-base">
+                <div className="h-full rounded-full bg-emerald-500 transition-all duration-300" style={{ width: '0%' }} />
+              </div>
+            </div>
+          )}
+          {!isFree && pricePercentile != null && (
+            <div className="mt-4 pt-3 border-t border-slate-800" aria-hidden="true">
+              <div className="flex items-center justify-between text-xs mb-1.5">
+                <span className="text-slate-400">
+                  {pricePercentile === 0
+                    ? 'Among the cheapest models'
+                    : pricePercentile === 100
+                      ? 'Most expensive model'
+                      : `More expensive than ${pricePercentile}% of models`}
+                </span>
+                <span className="text-slate-500">{pricePercentile}th percentile</span>
+              </div>
+              <div className="h-2 rounded-full overflow-hidden bg-surface-base">
+                <div
+                  className="h-full rounded-full bg-emerald-500 transition-all duration-300"
+                  style={{ width: `${Math.max(pricePercentile, 2)}%` }}
+                />
+              </div>
+            </div>
           )}
         </div>
 

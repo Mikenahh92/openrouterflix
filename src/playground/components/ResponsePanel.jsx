@@ -24,6 +24,7 @@ export default function ResponsePanel({
   onRetry,
   modelName,
   modelProvider,
+  modelContextWindow,
 }) {
   const [elapsed, setElapsed] = useState(0);
   const intervalRef = useRef(null);
@@ -125,6 +126,29 @@ export default function ResponsePanel({
               {formatCost(response.cost)}
             </span>
           </div>
+
+          {/* Token Usage Bar */}
+          {response.tokens != null && modelContextWindow != null && modelContextWindow > 0 && (
+            <div className="mt-3" aria-hidden="true">
+              {(() => {
+                const pct = Math.min((response.tokens / modelContextWindow) * 100, 100);
+                const barColor = pct > 80 ? 'bg-red-500' : pct > 50 ? 'bg-amber-500' : 'bg-emerald-500';
+                return (
+                  <>
+                    <div className="h-2 rounded-full overflow-hidden bg-surface-base">
+                      <div
+                        className={`h-full rounded-full transition-all duration-300 ${barColor}`}
+                        style={{ width: `${Math.max(pct, 1)}%` }}
+                      />
+                    </div>
+                    <div className="text-[11px] text-slate-500 mt-1">
+                      {formatTokens(response.tokens)} / {formatTokens(modelContextWindow)} tokens
+                    </div>
+                  </>
+                );
+              })()}
+            </div>
+          )}
         </div>
       )}
 

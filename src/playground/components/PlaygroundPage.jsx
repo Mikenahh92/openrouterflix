@@ -150,6 +150,7 @@ export default function PlaygroundPage() {
             onRetry={submitPrompt}
             modelName={selectedModelData?.name || selectedModelData?.id || null}
             modelProvider={selectedModelData?.provider || null}
+            modelContextWindow={selectedModelData?.contextWindow ?? null}
           />
         )}
       </div>

@@ -20,6 +20,13 @@ vi.mock('../hooks/useModelDetail', () => ({
   default: (...args) => mockUseModelDetail(...args),
 }));
 
+// ── Mock useStore (global catalog store) ────────────────────────────
+let mockCatalogModels = [];
+
+vi.mock('../../shared/lib/store.js', () => ({
+  useStore: (selector) => selector({ catalog: { models: mockCatalogModels } }),
+}));
+
 // ── Mock only useNavigate (keep real routing) ───────────────────────
 vi.mock('react-router', async () => {
   const actual = await vi.importActual('react-router');
@@ -279,5 +286,72 @@ describe('DetailPage', () => {
     renderDetailPage('anthropic/claude-3-opus');
 
     expect(mockUseModelDetail).toHaveBeenCalledWith('anthropic/claude-3-opus');
+  });
+
+  // ORF-037: Pricing Percentile Bar
+  describe('pricing percentile bar', () => {
+    beforeEach(() => {
+      mockCatalogModels = [
+        { id: 'a', pricing: { prompt: 1 } },
+        { id: 'b', pricing: { prompt: 2 } },
+        { id: 'c', pricing: { prompt: 3 } },
+        { id: 'd', pricing: { prompt: 5 } },
+        { id: 'e', pricing: { prompt: 10 } },
+      ];
+    });
+
+    it('renders percentile bar for paid models', () => {
+      mockHookReturn.model = fullModel; // pricing.prompt = 5
+      renderDetailPage();
+
+      // 3 out of 5 have lower price (1, 2, 3) → 60th percentile
+      expect(screen.getByText('More expensive than 60% of models')).toBeInTheDocument();
+      expect(screen.getByText('60th percentile')).toBeInTheDocument();
+    });
+
+    it('shows "Free — cheapest tier" for free models', () => {
+      mockHookReturn.model = freeModel; // pricing.prompt = 0
+      renderDetailPage();
+
+      expect(screen.getByText('Free — cheapest tier')).toBeInTheDocument();
+    });
+
+    it('hides percentile bar when catalog models are empty', () => {
+      mockCatalogModels = [];
+      mockHookReturn.model = fullModel;
+      renderDetailPage();
+
+      expect(screen.queryByText(/percentile/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/More expensive than/)).not.toBeInTheDocument();
+    });
+
+    it('hides percentile bar for null pricing', () => {
+      const nullPricingModel = {
+        ...fullModel,
+        pricing: { prompt: null, completion: null },
+      };
+      mockHookReturn.model = nullPricingModel;
+      renderDetailPage();
+
+      expect(screen.queryByText(/percentile/)).not.toBeInTheDocument();
+    });
+
+    it('shows "Among the cheapest" for 0th percentile', () => {
+      const cheapModel = { ...fullModel, pricing: { prompt: 0.5, completion: 1 } };
+      mockHookReturn.model = cheapModel;
+      renderDetailPage();
+
+      // 0 out of 5 have lower price → 0th percentile
+      expect(screen.getByText('Among the cheapest models')).toBeInTheDocument();
+    });
+
+    it('shows "Most expensive" for 100th percentile', () => {
+      const expensiveModel = { ...fullModel, pricing: { prompt: 20, completion: 50 } };
+      mockHookReturn.model = expensiveModel;
+      renderDetailPage();
+
+      // All 5 have lower price → 100th percentile
+      expect(screen.getByText('Most expensive model')).toBeInTheDocument();
+    });
   });
 });
