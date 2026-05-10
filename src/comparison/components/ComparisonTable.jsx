@@ -131,10 +131,10 @@ const DIMENSIONS = [
  * @param {Array} models — array of normalized model objects
  * @returns {Map<string, Set<number>>}
  */
-function computeHighlights(models) {
+function computeHighlights(models, dimensions = DIMENSIONS) {
   const highlights = new Map();
 
-  for (const dim of DIMENSIONS) {
+  for (const dim of dimensions) {
     if (!dim.bestMode) continue;
 
     // Collect non-null numeric values with their indices
@@ -211,9 +211,15 @@ function DataCell({ model, dim, isHighlighted }) {
  * @param {object} props
  * @param {Array} props.models — array of normalized model objects (2-4)
  * @param {Function} props.onRemoveModel — callback(modelId) when × is clicked
+ * @param {string[]} [props.visibleDimensions] — dimension keys to show (defaults to all)
  */
-export default function ComparisonTable({ models, onRemoveModel }) {
-  const highlights = useMemo(() => computeHighlights(models), [models]);
+export default function ComparisonTable({ models, onRemoveModel, visibleDimensions }) {
+  const filteredDimensions = useMemo(
+    () => (visibleDimensions ? DIMENSIONS.filter((d) => visibleDimensions.includes(d.key)) : DIMENSIONS),
+    [visibleDimensions]
+  );
+
+  const highlights = useMemo(() => computeHighlights(models, filteredDimensions), [models, filteredDimensions]);
 
   return (
     <div className="overflow-x-auto scrollbar-thin">
@@ -235,7 +241,7 @@ export default function ComparisonTable({ models, onRemoveModel }) {
 
         {/* Dimension rows */}
         <tbody>
-          {DIMENSIONS.map((dim, rowIdx) => {
+          {filteredDimensions.map((dim, rowIdx) => {
             const Icon = dim.icon;
             const isEvenRow = rowIdx % 2 === 0;
             const dimHighlights = highlights.get(dim.key);

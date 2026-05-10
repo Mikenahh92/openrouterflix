@@ -327,4 +327,51 @@ describe('ComparisonTable', () => {
     const table = container.querySelector('table');
     expect(table.className).toContain('min-w-[600px]');
   });
+
+  // ORF-024: visibleDimensions prop filters rows
+  it('visibleDimensions prop filters which dimension rows are rendered', () => {
+    render(
+      <ComparisonTable
+        models={[modelA, modelB]}
+        onRemoveModel={mockOnRemove}
+        visibleDimensions={['latency', 'qualityScore']}
+      />
+    );
+
+    expect(screen.getByText('Latency')).toBeInTheDocument();
+    expect(screen.getByText('Quality Score')).toBeInTheDocument();
+    expect(screen.queryByText('Provider')).not.toBeInTheDocument();
+    expect(screen.queryByText('Input Price')).not.toBeInTheDocument();
+    expect(screen.queryByText('Context Window')).not.toBeInTheDocument();
+  });
+
+  // ORF-024: visibleDimensions highlights only visible dimensions
+  it('visibleDimensions only highlights among visible dimensions', () => {
+    render(
+      <ComparisonTable
+        models={[modelA, modelB]}
+        onRemoveModel={mockOnRemove}
+        visibleDimensions={['latency']}
+      />
+    );
+
+    // Only latency row should have highlighting
+    const emeraldCells = document.querySelectorAll('.text-emerald-400');
+    expect(emeraldCells.length).toBeGreaterThanOrEqual(1);
+  });
+
+  // ORF-024: no visibleDimensions prop shows all rows (backward compatible)
+  it('without visibleDimensions prop, all 9 dimension rows are shown', () => {
+    render(<ComparisonTable models={[modelA, modelB]} onRemoveModel={mockOnRemove} />);
+
+    expect(screen.getByText('Provider')).toBeInTheDocument();
+    expect(screen.getByText('Input Price')).toBeInTheDocument();
+    expect(screen.getByText('Output Price')).toBeInTheDocument();
+    expect(screen.getByText('Latency')).toBeInTheDocument();
+    expect(screen.getByText('Context Window')).toBeInTheDocument();
+    expect(screen.getByText('Quality Score')).toBeInTheDocument();
+    expect(screen.getByText('Max Output')).toBeInTheDocument();
+    expect(screen.getByText('Modalities')).toBeInTheDocument();
+    expect(screen.getByText('Categories')).toBeInTheDocument();
+  });
 });

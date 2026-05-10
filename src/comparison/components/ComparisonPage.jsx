@@ -7,12 +7,16 @@
  *
  * Lazy-loaded via React.lazy() in App.jsx.
  */
-import { Link } from 'react-router';
+import { useCallback } from 'react';
+import { Link, useSearchParams } from 'react-router';
 import { AlertTriangle, Plus } from 'lucide-react';
 import useComparison from '../hooks/useComparison';
+import { useComparisonPresetsStore } from '../store.js';
 import ComparisonTable from './ComparisonTable';
 import ComparisonEmptyState from './ComparisonEmptyState';
 import PresetActions from './PresetActions';
+import PresetDropdown from './PresetDropdown';
+import DimensionToggle from './DimensionToggle';
 
 /* ─── Skeleton ─────────────────────────────────────────────────────── */
 
@@ -96,6 +100,17 @@ function ErrorState({ error, onRetry }) {
 
 export default function ComparisonPage() {
   const { models, loading, error, removeModel, ids } = useComparison();
+  const [, setSearchParams] = useSearchParams();
+
+  const visibleDimensions = useComparisonPresetsStore((s) => s.visibleDimensions);
+
+  // Load preset: update URL params → triggers useComparison hook to fetch
+  const handleLoadPreset = useCallback(
+    (modelIds) => {
+      setSearchParams({ ids: modelIds.join(',') }, { replace: true });
+    },
+    [setSearchParams]
+  );
 
   // Empty state: fewer than 2 valid IDs
   if (ids.length < 2 && !loading) {
@@ -143,7 +158,9 @@ export default function ComparisonPage() {
             Comparison ({models.length} {models.length === 1 ? 'model' : 'models'})
           </h2>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap justify-end">
+          <PresetDropdown currentModelIds={ids} onLoadPreset={handleLoadPreset} />
+          <DimensionToggle />
           <PresetActions ids={ids} />
           <Link
             to="/"
@@ -166,7 +183,7 @@ export default function ComparisonPage() {
       )}
 
       {/* Comparison table */}
-      <ComparisonTable models={models} onRemoveModel={removeModel} />
+      <ComparisonTable models={models} onRemoveModel={removeModel} visibleDimensions={visibleDimensions} />
     </div>
   );
 }

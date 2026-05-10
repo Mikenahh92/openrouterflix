@@ -23,6 +23,7 @@ export const DEFAULTS = {
   PAGE_SIZE: 20,
   DEBOUNCE_MS: 300,
   MAX_HISTORY_RUNS: 50,
+  MAX_COMPARISON_PRESETS: 50,
 };
 
 /**

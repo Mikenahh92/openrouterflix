@@ -19,6 +19,27 @@ vi.mock('../hooks/useComparison', () => ({
   default: () => mockHookReturn,
 }));
 
+// ── Mock presets store ──────────────────────────────────────────────
+const { presetsStoreRef } = vi.hoisted(() => ({
+  presetsStoreRef: {
+    current: {
+      presets: [],
+      visibleDimensions: [
+        'provider', 'pricing.prompt', 'pricing.completion', 'latency',
+        'contextWindow', 'qualityScore', 'maxOutput', 'modalities', 'categories',
+      ],
+    },
+  },
+}));
+
+vi.mock('../store.js', () => ({
+  useComparisonPresetsStore: (selector) => selector(presetsStoreRef.current),
+  ALL_DIMENSION_KEYS: [
+    'provider', 'pricing.prompt', 'pricing.completion', 'latency',
+    'contextWindow', 'qualityScore', 'maxOutput', 'modalities', 'categories',
+  ],
+}));
+
 // ── Fixture data ────────────────────────────────────────────────────
 
 const mockModels = [
@@ -285,5 +306,27 @@ describe('ComparisonPage', () => {
 
     const errorState = screen.getByTestId('comparison-error');
     expect(errorState).toHaveAttribute('role', 'alert');
+  });
+
+  // TC-UI-01: PresetDropdown is rendered on comparison page
+  it('TC-UI-01: renders PresetDropdown on comparison page with 2+ models', () => {
+    mockHookReturn.models = mockModels;
+    mockHookReturn.ids = ['a', 'b'];
+
+    renderComparisonPage();
+
+    expect(screen.getByTestId('preset-dropdown')).toBeInTheDocument();
+    expect(screen.getByTestId('save-current-btn')).toBeInTheDocument();
+  });
+
+  // DimensionToggle is rendered on comparison page
+  it('renders DimensionToggle on comparison page', () => {
+    mockHookReturn.models = mockModels;
+    mockHookReturn.ids = ['a', 'b'];
+
+    renderComparisonPage();
+
+    expect(screen.getByTestId('dimension-toggle')).toBeInTheDocument();
+    expect(screen.getByTestId('dimension-toggle-btn')).toBeInTheDocument();
   });
 });
