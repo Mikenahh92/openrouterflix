@@ -40,6 +40,31 @@ export default function AppLayout() {
         <Outlet />
       </main>
 
+      {/* Footer — zero-cost revenue: attribution + donation */}
+      <footer className="bg-surface-sunken border-t border-slate-800/50 py-3 px-12 shrink-0">
+        <div className="max-w-[1440px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-500">
+          <span>
+            Powered by{' '}
+            <a
+              href="https://openrouter.ai"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-slate-400 hover:text-slate-200 transition-colors"
+            >
+              OpenRouter
+            </a>
+          </span>
+          <a
+            href="https://buymeacoffee.com/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-slate-400 hover:text-slate-200 transition-colors"
+          >
+            ☕ Support Us
+          </a>
+        </div>
+      </footer>
+
       {/* Floating compare bar — visible when 2+ models selected */}
       <CompareBar />
     </div>
