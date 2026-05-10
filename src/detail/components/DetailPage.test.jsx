@@ -288,6 +288,7 @@ describe('DetailPage', () => {
     expect(mockUseModelDetail).toHaveBeenCalledWith('anthropic/claude-3-opus');
   });
 
+
   // ORF-037: Pricing Percentile Bar
   describe('pricing percentile bar', () => {
     beforeEach(() => {
@@ -353,5 +354,49 @@ describe('DetailPage', () => {
       // All 5 have lower price → 100th percentile
       expect(screen.getByText('Most expensive model')).toBeInTheDocument();
     });
+  });
+
+  // TC-D01: "View on OpenRouter" CTA renders with correct href and opens in new tab
+  it('TC-D01: renders View on OpenRouter CTA with correct href and target', () => {
+    mockHookReturn.model = fullModel;
+    mockHookReturn.loading = false;
+
+    renderDetailPage();
+
+    const cta = screen.getByTestId('view-on-openrouter-cta');
+    expect(cta).toBeInTheDocument();
+    expect(cta).toHaveTextContent('View on OpenRouter');
+    expect(cta.getAttribute('href')).toBe('https://openrouter.ai/models/openai/gpt-4o');
+    expect(cta.getAttribute('target')).toBe('_blank');
+    expect(cta.getAttribute('rel')).toBe('noopener noreferrer');
+  });
+
+  // TC-D02: Referral URL correctly encodes model ID with slash
+  it('TC-D02: referral URL contains correct model ID for slash-containing IDs', () => {
+    const slashModel = {
+      ...fullModel,
+      id: 'meta-llama/llama-3.1-70b-instruct',
+      name: 'Llama 3.1 70B',
+    };
+    mockHookReturn.model = slashModel;
+    mockHookReturn.loading = false;
+
+    renderDetailPage('meta-llama/llama-3.1-70b-instruct');
+
+    const cta = screen.getByTestId('view-on-openrouter-cta');
+    expect(cta.getAttribute('href')).toBe('https://openrouter.ai/models/meta-llama/llama-3.1-70b-instruct');
+  });
+
+  // TC-D06: Referral CTA works for free models
+  it('TC-D06: renders View on OpenRouter CTA for free models', () => {
+    mockHookReturn.model = freeModel;
+    mockHookReturn.loading = false;
+
+    renderDetailPage('meta/llama-3-free');
+
+    expect(screen.getByTestId('view-on-openrouter-cta')).toBeInTheDocument();
+    expect(screen.getByTestId('view-on-openrouter-cta').getAttribute('href')).toBe(
+      'https://openrouter.ai/models/meta/llama-3-free'
+    );
   });
 });

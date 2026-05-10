@@ -16,6 +16,7 @@ import {
   Ruler,
   ArrowUpFromLine,
   AlertTriangle,
+  ExternalLink,
 } from 'lucide-react';
 import useModelDetail from '../hooks/useModelDetail';
 import { useStore } from '../../shared/lib/store.js';
@@ -261,6 +262,16 @@ export default function DetailPage() {
           >
             Try this Model
           </Link>
+          <a
+            href={`https://openrouter.ai/models/${model.id}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="bg-surface-raised border border-slate-800 hover:border-violet-500 text-slate-100 rounded-lg px-4 py-3 text-sm font-medium transition-colors inline-flex items-center gap-2"
+            data-testid="view-on-openrouter-cta"
+          >
+            View on OpenRouter
+            <ExternalLink className="w-4 h-4" />
+          </a>
         </div>
       </section>
 
