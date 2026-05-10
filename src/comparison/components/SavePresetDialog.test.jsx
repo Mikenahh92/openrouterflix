@@ -134,7 +134,7 @@ describe('SavePresetDialog', () => {
 
   it('accepts name at exactly 50 characters', async () => {
     const onSave = vi.fn();
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     renderDialog({ onSave });
 
     await user.type(screen.getByTestId('preset-name-input'), 'a'.repeat(50));
