@@ -13,7 +13,8 @@
  *   - Export CSV/JSON and Import from JSON file
  */
 import { useState, useMemo, useCallback } from 'react';
-import { Clock, Trash2, AlertTriangle } from 'lucide-react';
+import { Link } from 'react-router';
+import { Clock, Trash2, AlertTriangle, BarChart3 } from 'lucide-react';
 import useHistory from '../hooks/useHistory';
 import HistoryFilters from './HistoryFilters';
 import HistoryList from './HistoryList';
@@ -117,6 +118,14 @@ export default function HistoryPage() {
           <h1 className="text-2xl font-semibold text-slate-100">Run History</h1>
         </div>
         <div className="flex items-center gap-3">
+          <Link
+            to="/history/analytics"
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800 rounded-lg px-3 py-1.5 transition-colors"
+          >
+            <BarChart3 className="w-4 h-4" />
+            View Analytics
+            <span className="text-xs">&rarr;</span>
+          </Link>
           <ExportControls
             records={filteredRuns}
             disabled={filteredRuns.length === 0}
